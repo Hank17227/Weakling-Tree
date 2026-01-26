@@ -12,11 +12,14 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.03",
-	name: "Crystals & Weakling Dusts",
+	num: "0.05",
+	name: "Hotfix (I guess)",
 }
 
 let changelog = `<h1>Changelog:</h1><br><br>
+	<h3>v0.05 - 2026/1/26</h3><br>
+		Fixed the Weakling Dust generation when having less than 1 Point (no more decay mess horray)
+		A Crystal Rework is coming soon...<br>
 	<h3>v0.03 - 2025/10/15</h3><br>
 		Adds a "decay" function which allows you to progress the game faster<br>
 		<i>(this took a while)</i><br>
@@ -56,7 +59,7 @@ function getPointGen() {
 	if(hasUpgrade("w",15)) gain = gain.mul(upgradeEffect("w",15))
 	if(hasUpgrade("w",23)) gain = gain.mul(upgradeEffect("w",23))
 	if(hasMilestone("c",1)) gain = gain.mul(10)
-	if(hasMilestone("c",3)) gain = gain.mul(10)
+	if(hasMilestone("c",3)) gain = gain.mul(5)
 	gain = (player.points.gte(1)?gain:Decimal.max(gain,0.05))
 	return gain
 }
@@ -67,7 +70,7 @@ let best = new Decimal(0)
 function bestPoints() {
 	best = best.max(tmp.points)
 	return best
-}*/
+}
 
 function decay(ratio) {
 	let decayRate = new Decimal(0)
@@ -75,7 +78,7 @@ function decay(ratio) {
 	if (ratio.lte(threshold)) decayRate = ratio.pow(2).div(threshold.pow(2))
 	else decayRate = new Decimal(1)
 	return decayRate
-}
+}*/
 
 // You can add non-layer related variables that should to into "player" and be saved here, along with default values
 function addedPlayerData() { return {

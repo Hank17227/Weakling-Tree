@@ -34,7 +34,10 @@ addLayer("w", {
         }
     },
     color: "#7a7a79ff",
-    requires: new Decimal(1), // Can be a function that takes requirement increases into account
+    requires() {
+        if (player[this.layer].points.gt(0)) return new Decimal(0)
+        else return new Decimal(1)
+    }, // Can be a function that takes requirement increases into account
     resource: "Weakling Dust", // Name of prestige currency
     baseResource: "Points", // Name of resource prestige is based on
     baseAmount() {return player.points}, // Get the current amount of baseResource
@@ -66,13 +69,15 @@ addLayer("w", {
     layerShown(){return true},
 
     effect() {
-        let eff = 1
+        let eff = new Decimal(1)
         let exponent = 0.5
         let weakling = player[this.layer].points
         let lastBuyableCost = tmp[this.layer].buyables[11].cost.div(5)
-        let pointsRatio = player.points.div(lastBuyableCost)
+        //let pointsRatio = player.points.div(lastBuyableCost)
+        //let growthRate = new Decimal(0.01)
+        //growthRate = growthRate.pow(decay(pointsRatio))
         if(hasUpgrade(this.layer,13)) exponent = 0.4
-        if(weakling.gt(0)) eff = Decimal.pow(weakling,exponent).add(1).pow((!hasMilestone("c",3)?decay(pointsRatio):decay(pointsRatio).pow(2)))
+        if(weakling.gt(0)) eff = Decimal.max(weakling.pow(exponent).add(1),1)
         return eff
     },
     effectDescription() {
@@ -80,7 +85,7 @@ addLayer("w", {
     },
 
     update() {
-        player.devSpeed = new Decimal(1)
+        player.devSpeed = new Decimal(0)
     },
 
     buyables: {
@@ -238,13 +243,17 @@ addLayer("w", {
 
 addLayer("c", {
     tabFormat: [
+        ["infobox","introBox"],
         "main-display",
         "prestige-button",
         "blank",
         ["display-text",
-            function() {return "You have <b>"+format(player.c.ud)+"</b> Unstable Dust, "+
-            "which are dividing Weakling Dust gain by <b>"+format(player.c.ude)+"</b>.<br>"+
-            "You are gaining "+format(player.c.udg)+" Unstable Dust per second."
+            function() {
+            let nonEvil = tmp.c.nonEvilCrystalChance.times(100)
+            let one = new Decimal(100)
+            return ""//+"You have <b>"+format(player.c.ud)+"</b> Unstable Dust.<br>"+
+            //"Projected chance for <b style=\"color: #d937faff;\">Evil Crystal</b>: "+format(one.sub(nonEvil))+"%.<br>"+
+            //"Projected chance for Non-Evil Crystal: "+format(nonEvil)+"%."
         }],
         "blank",
         "milestones"
@@ -252,21 +261,31 @@ addLayer("c", {
     name: "Crystals", // This is optional, only used in a few places, If absent it just uses the layer id.
     symbol: "C", // This appears on the layer's node. Default is the id with the first letter capitalized
     position: 1, // Horizontal position within a row. By default it uses the layer id and sorts in alphabetical order
+    infoboxes: {
+        introBox: {
+            title: "Welcome!",
+            body() {
+                return "Welcome to the 2nd Mechanic, Crystals! In here, you can condense your Weakling Points into some Crystal Shards."+
+                " By combining 10 Crystal Shards, you'll have a full crystal!<br><br>"+
+                "You can also combine multiple of them at once, but be careful when doing so, you might end up creating <b style=\"color: #d937faff;\">Evil Crystals</b> instead,"+
+                " in which it will harm your progress in various ways.<br>"
+            }
+        }
+    },
     startData() { return {
         unlocked: false,
 		points: new Decimal(0),
         ud: new Decimal(0), // Unstable Dust (UD)
-	    udg: new Decimal(0), // UD gain
-	    ude: new Decimal(1) // UD effect
+        evilPoints: new Decimal(0) // Evil Crystals
     }},
     color: "#d11f1fff",
     requires: new Decimal(2e10), // Can be a function that takes requirement increases into account
-    resource: "Crystals", // Name of prestige currency
+    resource: "Crystal Shards", // Name of prestige currency
     baseResource: "Weakling Dust", // Name of resource prestige is based on
     baseAmount() {return player.w.points}, // Get the current amount of baseResource
-    type: "static", // normal: cost to gain currency depends on amount gained. static: cost depends on how much you already have
-    base: 5.75,
-    exponent: 1.25, // Prestige currency exponent
+    type: "normal", // normal: cost to gain currency depends on amount gained. static: cost depends on how much you already have
+    base: 1,
+    exponent: new Decimal(1).div(3), // Prestige currency exponent
 
     passiveGeneration() {
         let gain = new Decimal(0)
@@ -279,6 +298,12 @@ addLayer("c", {
     gainExp() { // Calculate the exponent on main currency from bonuses
         return new Decimal(1)
     },
+
+    nonEvilCrystalChance() {
+        let projectedCrystals = Decimal.round(Decimal.pow(player.w.points.div("2e10"),Decimal.div(1,3)))
+        return Decimal.pow(0.75,projectedCrystals.sub(1))
+    },
+
     udBase() {
         return player.w.points.gte(2e10)?player.w.points.div(2e10):new Decimal(0)
     },
@@ -311,7 +336,10 @@ addLayer("c", {
 
     row: 1, // Row the layer is in on the tree (0 is the first row)
     hotkeys: [
-        {key: "c", description: "C: Condense into Crystals", onPress(){if (canReset(this.layer)) doReset(this.layer)}},
+        {key: "c", description: "C: Condense into Crystals", 
+        onPress(){
+            if (canReset(this.layer)) doReset(this.layer)
+        }},
     ],
     layerShown(){return hasUpgrade("w", 25)||hasMilestone(this.layer,0)},
 
@@ -319,7 +347,8 @@ addLayer("c", {
         player.c.ud = new Decimal(0)
     },
 
-    milestones: {
+    /*
+    milestones: { ABANDONED FOR NOW
         0: {
             requirementDescription: "1 Crystal",
             effectDescription: "×3 Weakling Dust gain.",
@@ -340,7 +369,7 @@ addLayer("c", {
         },
         3: {
             requirementDescription: "4 Crystals",
-            effectDescription: "×10 Points gain, again.",
+            effectDescription: "×5 Points gain.",
             done() {return player.c.points.gte(4)},
             unlocked() {return hasMilestone(this.layer, 2)}
         },
@@ -351,6 +380,7 @@ addLayer("c", {
             unlocked() {return hasMilestone(this.layer, 3)}
         },
     }
+    */
 
 
 })
