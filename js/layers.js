@@ -35,7 +35,7 @@ addLayer("w", {
     },
     color: "#7a7a79ff",
     requires() {
-        if (player[this.layer].points.gt(0)) return new Decimal(0)
+        if (player.w.points.gt(0)) return new Decimal(0)
         else return new Decimal(1)
     }, // Can be a function that takes requirement increases into account
     resource: "Weakling Dust", // Name of prestige currency
@@ -50,9 +50,9 @@ addLayer("w", {
         gain = gain.times(hasUpgrade(this.layer,12)?4:1)
         gain = gain.times(hasUpgrade(this.layer,21)?upgradeEffect(this.layer,21):1)
         gain = gain.times(hasUpgrade(this.layer,24)?upgradeEffect(this.layer,24):1)
-        gain = gain.times(hasMilestone("c",0)?3:1)
-        gain = gain.div(player.c.ude)
-        gain = gain.times(hasMilestone("c",2)?tmp.c.psConvert:1)
+        //gain = gain.times(hasMilestone("c",0)?3:1)
+        //gain = gain.div(player.c.ude)
+        //gain = gain.times(hasMilestone("c",2)?tmp.c.psConvert:1)
         return gain
     },
     gainMult() { // Calculate the multiplier for main currency from bonuses
@@ -72,7 +72,7 @@ addLayer("w", {
         let eff = new Decimal(1)
         let exponent = 0.5
         let weakling = player[this.layer].points
-        let lastBuyableCost = tmp[this.layer].buyables[11].cost.div(5)
+        //let lastBuyableCost = tmp[this.layer].buyables[11].cost.div(5)
         //let pointsRatio = player.points.div(lastBuyableCost)
         //let growthRate = new Decimal(0.01)
         //growthRate = growthRate.pow(decay(pointsRatio))
@@ -85,7 +85,7 @@ addLayer("w", {
     },
 
     update() {
-        player.devSpeed = new Decimal(0)
+        player.devSpeed = new Decimal(10)
     },
 
     buyables: {
@@ -263,9 +263,9 @@ addLayer("c", {
     position: 1, // Horizontal position within a row. By default it uses the layer id and sorts in alphabetical order
     infoboxes: {
         introBox: {
-            title: "Welcome!",
+            title: "Crystals",
             body() {
-                return "Welcome to the 2nd Mechanic, Crystals! In here, you can condense your Weakling Points into some Crystal Shards."+
+                return "Welcome to the 2nd Mechanic, Crystals! In here, you can condense your Weakling Dusts into some Crystal Shards."+
                 " By combining 10 Crystal Shards, you'll have a full crystal!<br><br>"+
                 "You can also combine multiple of them at once, but be careful when doing so, you might end up creating <b style=\"color: #d937faff;\">Evil Crystals</b> instead,"+
                 " in which it will harm your progress in various ways.<br>"
@@ -276,7 +276,12 @@ addLayer("c", {
         unlocked: false,
 		points: new Decimal(0),
         ud: new Decimal(0), // Unstable Dust (UD)
-        evilPoints: new Decimal(0) // Evil Crystals
+        nec1: new Decimal(0), // Non-Evil Crystal Effect 1: Points Gain mult
+        nec2: new Decimal(0), // Non-Evil Crystal Effect 2: Weakling Dusts Gain mult
+        nec3: new Decimal(0), // Non-Evil Crystal Effect 3: Weakling Dust Buyable Cost Reduction
+        ec1: new Decimal(0), // Evil Crystal Effect 1: Weakling Dusts effect strengthen
+        ec2: new Decimal(0), // Evil Crystal Effect 2: Weakling Dusts Gain div
+        ec3: new Decimal(0) // Evil Crystal Effect 3: Non Evil Crystal decrement
     }},
     color: "#d11f1fff",
     requires: new Decimal(2e10), // Can be a function that takes requirement increases into account
@@ -285,7 +290,7 @@ addLayer("c", {
     baseAmount() {return player.w.points}, // Get the current amount of baseResource
     type: "normal", // normal: cost to gain currency depends on amount gained. static: cost depends on how much you already have
     base: 1,
-    exponent: new Decimal(1).div(3), // Prestige currency exponent
+    exponent: 1/3, // Prestige currency exponent
 
     passiveGeneration() {
         let gain = new Decimal(0)
@@ -328,20 +333,21 @@ addLayer("c", {
     },
 
     update(diff) {
-        if(!hasMilestone(this.layer,0)) return
+        /*if(!hasMilestone(this.layer,0)) return
         player.c.ud = player.c.ud.add(tmp.c.udGain.times(diff))
         player.c.ude = tmp.c.udEffect
-        player.c.udg = tmp.c.udGain
+        player.c.udg = tmp.c.udGain*/
+        
     },
 
     row: 1, // Row the layer is in on the tree (0 is the first row)
     hotkeys: [
-        {key: "c", description: "C: Condense into Crystals", 
+        {key: "c", description: "C: Condense into Crystal Shards", 
         onPress(){
             if (canReset(this.layer)) doReset(this.layer)
         }},
     ],
-    layerShown(){return hasUpgrade("w", 25)||hasMilestone(this.layer,0)},
+    layerShown(){return hasUpgrade("w", 25)||player.c.points.gt(0)},
 
     doReset(resettingLayer) {
         player.c.ud = new Decimal(0)
