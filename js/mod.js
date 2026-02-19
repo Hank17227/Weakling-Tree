@@ -1,7 +1,7 @@
 let modInfo = {
 	name: "Weakling Tree",
 	author: "HankG",
-	pointsName: "Points",
+	pointsName: "Mentality",
 	modFiles: ["layers.js", "tree.js"],
 
 	discordName: "",
@@ -58,8 +58,9 @@ function getPointGen() {
 	if(hasUpgrade("w",14)) gain = gain.mul(5)
 	if(hasUpgrade("w",15)) gain = gain.mul(upgradeEffect("w",15))
 	if(hasUpgrade("w",23)) gain = gain.mul(upgradeEffect("w",23))
-	if(hasMilestone("c",1)) gain = gain.mul(10)
-	if(hasMilestone("c",3)) gain = gain.mul(5)
+	if(hasMilestone("c",1)) gain = gain.mul(4)
+	if(hasMilestone("c",3)) gain = gain.mul(3)
+	if(hasMilestone("c",4)) gain = gain.mul(tmp.c.wmConvert)
 	gain = (player.points.gte(1)?gain:Decimal.max(gain,0.05))
 	return gain
 }
