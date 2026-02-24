@@ -1,12 +1,12 @@
 addLayer("w", {
     tabFormat: [
         ["infobox","introBox"],
-        "resource-display",
         "blank",
         "buyables",
         "blank",
         "blank",
         "main-display",
+        "resource-display",
         //"prestige-button",
         "upgrades"
     ],
@@ -16,7 +16,61 @@ addLayer("w", {
     startData() { return {
         unlocked: true,
 		points: new Decimal(0),
+        MSStatus: { // Stats for Mentality Strengthen Cost Calculation
+            points: new Decimal(0),
+            base: new Decimal(10),
+            constant: new Decimal(10),
+            factor: new Decimal(5),
+            offset: new Decimal(0),
+            scaleStart: [new Decimal(10)],
+            scaledFactor: [new Decimal(15)],
+            buyCount: new Decimal(0),
+            injected: false, // filter to the totalBuysWithScaling so that it doesn't mess up the calc with set buyCount value
+            bought: new Decimal(-1),
+            boughtCost: new Decimal(0)
+        },
+        WSStatus: { // Stats for Weakling Strengthen Cost Calculation
+            points: new Decimal(0),
+            base: new Decimal(5),
+            constant: new Decimal(5),
+            factor: new Decimal(3),
+            offset: new Decimal(0),
+            scaleStart: [new Decimal(12), new Decimal(24)],
+            scaledFactor: [new Decimal(6), new Decimal(12)],
+            buyCount: new Decimal(0),
+            injected: false, // filter to the totalBuysWithScaling so that it doesn't mess up the calc with set buyCount value
+            bought: new Decimal(-1),
+            boughtCost: new Decimal(0)
+        }
     }},
+    MSCostDifference() {
+        player.w.MSStatus = MSInitialize(player.w.MSStatus)
+        player.w.MSStatus.buyCount = player.w.MSStatus.bought
+        player.w.MSStatus.injected = true
+        player.w.MSStatus = totalBuysWithScaling(player.w.MSStatus)
+        let cost2 = totalCost(player.w.MSStatus)
+        player.w.MSStatus = MSInitialize(player.w.MSStatus)
+        player.w.MSStatus.boughtCost = cost2
+        player.w.MSStatus = totalBuysWithScaling(player.w.MSStatus)
+        let totalBuy = player.w.MSStatus.buyCount
+        let cost1 = totalCost(player.w.MSStatus)
+        player.w.MSStatus.buyCount = totalBuy
+        return cost1.sub(cost2)
+    },
+    WSCostDifference() {
+        player.w.WSStatus = WSInitialize(player.w.WSStatus)
+        player.w.WSStatus.buyCount = player.w.WSStatus.bought
+        player.w.WSStatus.injected = true
+        player.w.WSStatus = totalBuysWithScaling(player.w.WSStatus)
+        let cost2 = totalCost(player.w.WSStatus)
+        player.w.WSStatus = WSInitialize(player.w.WSStatus)
+        player.w.WSStatus.boughtCost = cost2
+        player.w.WSStatus = totalBuysWithScaling(player.w.WSStatus)
+        let totalBuy = player.w.WSStatus.buyCount
+        let cost1 = totalCost(player.w.WSStatus)
+        player.w.WSStatus.buyCount = totalBuy
+        return cost1.sub(cost2)
+    },
     infoboxes: {
         introBox: {
             title: "Welcome!",
@@ -53,6 +107,8 @@ addLayer("w", {
         gain = gain.times(hasMilestone("c",0)?3:1)
         gain = gain.div(player.c.ude)
         gain = gain.times(hasMilestone("c",2)?tmp.c.mwConvert:1)
+        gain = gain.times(hasMilestone("c",4)?3:1)
+        gain = gain.times(hasMilestone("c",6)?tmp.c.crystalsToWeakling:1)
         return gain
     },
     gainMult() { // Calculate the multiplier for main currency from bonuses
@@ -78,14 +134,22 @@ addLayer("w", {
         //growthRate = growthRate.pow(decay(pointsRatio))
         if(hasUpgrade(this.layer,13)) exponent = 0.4
         if(weakling.gt(0)) eff = Decimal.max(weakling.pow(exponent).add(1),1)
-        if(hasMilestone("c",4)) eff = eff.div(tmp.c.udNerfWeaklingEffect)
+        if(hasMilestone("c",20)) eff = eff.div(tmp.c.udNerfWeaklingEffect)
         return eff
     },
     effectDescription() {
-        return "which are dividing Mentality gain by <b>"+format(this.effect())+"</b>."
+        return "which are dividing Mentality gain by <h3><b>"+format(this.effect())+"</b></h3>."
+    },
+
+    automate() {
+       if(hasMilestone("d",0) && player.d.autoStrengthen) {
+            layers.w.buyables[11].buyMax()
+            layers.w.buyables[12].buyMax()
+       }
     },
 
     update() {
+        player.devSpeed = new Decimal(1)
     },
 
     buyables: {
@@ -97,7 +161,14 @@ addLayer("w", {
                 return cost
             },
             cost(x) {
-                let consume = new Decimal(this.baseCost()).mul(new Decimal(5).pow(x))
+                let base = this.baseCost()
+                let scale = [new Decimal(5), new Decimal(15)]
+                let scaledCost = [
+                    base.mul(scale[0].pow(x)),
+                    base.mul(scale[0].pow(9)).mul(scale[1].pow(x.sub(9)))
+                ]
+                let consume = scaledCost[0]
+                if(x.gte(10)) consume = scaledCost[1]
                 return consume
             },
             effect(x) {
@@ -110,6 +181,11 @@ addLayer("w", {
                 player.points = player.points.sub(this.cost())
                 setBuyableAmount(this.layer, this.id, getBuyableAmount(this.layer, this.id).add(1))
             },
+            buyMax() {
+                if (!this.canAfford()) return
+                player.points = player.points.sub(tmp.w.MSCostDifference)
+                setBuyableAmount(this.layer, this.id, getBuyableAmount(this.layer, this.id).add(player.w.MSStatus.buyCount).sub(player.w.MSStatus.bought))
+            },
             display() {return "Double the Mentality gain!\n"+
                 "Currently: "+format(this.effect())+"×\n\n"+
                 "Cost: "+format(this.cost())+" Points"
@@ -117,10 +193,23 @@ addLayer("w", {
         },
         12: {
             title: "Weakling Strengthen",
+            baseCost() {
+                let cost = new Decimal(5)
+                if(hasMilestone("c",21)) cost = cost.div(tmp.c.udNerfWSCost)
+                return cost
+            },
             cost(x) {
-                let beforeScaleCost = new Decimal(5).mul(new Decimal(3).pow(11))
-                if(x.gte(12)) return beforeScaleCost.mul(new Decimal(6).pow(x.sub(11)))
-                else return new Decimal(5).mul(new Decimal(3).pow(x))
+                let base = this.baseCost()
+                let scale = [new Decimal(3), new Decimal(6), new Decimal(12)]
+                let scaledCost = [
+                    base.mul(scale[0].pow(x)),
+                    base.mul(scale[0].pow(11)).mul(scale[1].pow(x.sub(11))),
+                    base.mul(scale[0].pow(11)).mul(scale[1].pow(12)).mul(scale[2].pow(x.sub(23)))
+                ]
+                let consume = scaledCost[0]
+                if(x.gte(12)&&x.lt(24)) consume = scaledCost[1]
+                if(x.gte(24)) consume = scaledCost[2]
+                return consume
             },
             effect(x) {
                 let eff = 1
@@ -132,6 +221,11 @@ addLayer("w", {
                 cost = tmp[this.layer].buyables[this.id].cost
                 player[this.layer].points = player[this.layer].points.sub(cost)
                 setBuyableAmount(this.layer, this.id, getBuyableAmount(this.layer, this.id).add(1))
+            },
+            buyMax() {
+                if(!this.canAfford()) return;
+                player.w.points = player.w.points.sub(tmp.w.WSCostDifference)
+                setBuyableAmount(this.layer, this.id, getBuyableAmount(this.layer, this.id).add(player.w.WSStatus.buyCount).sub(player.w.WSStatus.bought))
             },
             display() {return "Double the Weakling Dust gain!\n"+
                 "Currently: "+format(this.effect())+"×\n\n"+
@@ -206,10 +300,18 @@ addLayer("w", {
             title: "Self-Synergy",
             description: "Mentality boost itself.",
             cost: new Decimal(500000),
+            base() {
+                let base = player.points.add(1).pow(0.6).div(4).add(1)
+                return base
+            },
             effect() {
-                return player.points.add(1).pow(0.6).div(4).add(1)
+                let eff = tmp.w.upgrades[23].base
+                let sftcap = new Decimal(100)
+                if (eff.gte(sftcap)) eff = eff.div(sftcap).pow(0.6).mul(sftcap)
+                return eff
             },
             effectDisplay() {
+                if (tmp.w.upgrades[23].effect.gte(100)) return format(this.effect())+"× (softcapped)"
                 return format(this.effect())+"×"
             },
             unlocked() {return (hasUpgrade(this.layer,22))}
@@ -218,10 +320,18 @@ addLayer("w", {
             title: "Powerful Weakling",
             description: "Weakling Dust boosts itself.",
             cost: new Decimal(1000000),
+            base() {
+                let base = player[this.layer].points.pow(0.4).div(8)
+                return base
+            },
             effect() {
-                return player[this.layer].points.pow(0.4).div(8)
+                let eff = tmp.w.upgrades[24].base
+                let sftcap = new Decimal(10000)
+                if (eff.gte(sftcap)) eff = eff.div(sftcap).pow(0.5).mul(sftcap)
+                return eff
             },
             effectDisplay() {
+                if (tmp.w.upgrades[24].effect.gte(10000)) return format(this.effect())+"× (softcapped)"
                 return format(this.effect())+"×"
             },
             unlocked() {return (hasUpgrade(this.layer,23))}
@@ -244,17 +354,15 @@ addLayer("w", {
 
 addLayer("c", {
     tabFormat: {
-        Instability: {
-            content:[["infobox","introBox"],
-            "main-display",
+        Milestones: {
+            content:["main-display",
             "prestige-button",
             "blank",
             ["display-text",
                 function() {
-                return "You have <b>"+format(player.c.ud)+"</b> Unstable Dust, "+
-                "which are dividing <b style=\"color: #7a7a79ff;\">Weakling Dust</b> gain by "+format(player.c.ude)
-                //"Projected chance for <b style=\"color: #d937faff;\">Evil Crystal</b>: "+format(one.sub(nonEvil))+"%.<br>"+
-                //"Projected chance for Non-Evil Crystal: "+format(nonEvil)+"%."
+                return "You have <h2><b>"+format(player.c.ud)+"</b></h2> Unstable Dust, "+
+                "which are dividing <b style=\"color: #7a7a79ff;\">Weakling Dust</b> gain by <h3><b>"+format(player.c.ude)+"</b></h3>"+
+                ((hasMilestone("c",22)&player.c.ud.gte(1e6))?tmp.c.udEffect2Desc:".")
             }],
             ["blank","10px"],
             ["display-text", function() {
@@ -262,22 +370,37 @@ addLayer("c", {
                 " (+"+format(tmp.w.passiveGeneration)+"/s)"
             }],
             "blank",
-            "milestones"
+            ["microtabs","goals"]
             ]
         },
-        Fusion: {
-            content: ["main-display"]
+        Crystals: {
+            unlocked() {return hasMilestone("c", 9)},
+            content: [["infobox","introBox"],
+            "main-display"]
+        }
+    },
+    microtabs: {
+        goals: {
+            "Crystal Shards": {
+                unlocked: true,
+                content: [["milestones", [0,1,2,3,4,5,6,7,8,9,10]]]
+            },
+            "Unstable Dust": {
+                unlocked: true,
+                content: [["milestones", [20,21,22,23,24,25,26,27]]]
+            }
         }
     },
     name: "Crystals", // This is optional, only used in a few places, If absent it just uses the layer id.
     symbol: "C", // This appears on the layer's node. Default is the id with the first letter capitalized
     position: 1, // Horizontal position within a row. By default it uses the layer id and sorts in alphabetical order
+    branches: ["w"],
     infoboxes: {
         introBox: {
             title: "Crystals",
             body() {
                 return "Welcome to the 2nd Mechanic, Crystals! In here, you can condense your Weakling Dusts into some Crystal Shards."+
-                " By combining 10 Crystal Shards, you'll have a full crystal!<br><br>"+
+                " By combining 20 Crystal Shards, you'll have a full crystal!<br><br>"+
                 "You can also combine multiple of them at once, but be careful when doing so, you might end up creating <b style=\"color: #d937faff;\">Evil Crystals</b> instead,"+
                 " in which it will harm your progress in various ways.<br>"
             }
@@ -288,6 +411,7 @@ addLayer("c", {
 		points: new Decimal(0),
         ud: new Decimal(0), // Unstable Dust (UD)
         ude: new Decimal(0), // UD Effect
+        //autoStrengthen: false,
         nec1: new Decimal(0), // Non-Evil Crystal Effect 1: Points Gain mult
         nec2: new Decimal(0), // Non-Evil Crystal Effect 2: Weakling Dusts Gain mult
         nec3: new Decimal(0), // Non-Evil Crystal Effect 3: Weakling Dust Buyable Cost Reduction
@@ -298,6 +422,7 @@ addLayer("c", {
     color: "#d11f1fff",
     requires: new Decimal(2e10), // Can be a function that takes requirement increases into account
     resource: "Crystal Shards", // Name of prestige currency
+    resourceSingular: "Crystal Shard",
     baseResource: "Weakling Dust", // Name of resource prestige is based on
     baseAmount() {return player.w.points}, // Get the current amount of baseResource
     type: "normal", // normal: cost to gain currency depends on amount gained. static: cost depends on how much you already have
@@ -329,6 +454,10 @@ addLayer("c", {
         return eff
     },
 
+    udEffect2Desc() {
+        return " and <b>Mentality</b> gain by <h3><b>"+format(player.c.ude.pow(0.4))+"</b></h3>."
+    },
+
     udGainMult() {
         let mult = new Decimal(1)
         return mult
@@ -346,6 +475,21 @@ addLayer("c", {
 
     udNerfWeaklingEffect() {
         let mult = player.c.ud.pow(0.2).mul(3.3).add(1)
+        return mult
+    },
+
+    udNerfWSCost() {
+        let mult = player.c.ud.pow(0.1).add(1)
+        return mult
+    },
+
+    crystalsToWeakling() {
+        let mult = player.c.points.log10().mul(6.4)
+        return mult
+    },
+
+    crystalsToMentality() {
+        let mult = player.c.points.log10().mul(3.1)
         return mult
     },
 
@@ -394,6 +538,38 @@ addLayer("c", {
             done() {return player.c.points.gte(4)},
         },
         4: {
+            requirementDescription: "7 Crystal Shards",
+            effectDescription: "Triples Weakling Dust gain, again.",
+            done() {return player.c.points.gte(7)},
+        },
+        5: {
+            requirementDescription: "10 Crystal Shards",
+            effectDescription() {
+                return "Boosts Mentality based on Weakling Dusts.<br>"+
+                "Currently: ×"+format(tmp.c.wmConvert)+"."
+            },
+            done() {return player.c.points.gte(10)},
+        },
+        6: {
+            requirementDescription: "15 Crystal Shards",
+            effectDescription() {
+                return "Boosts Mentality and Weakling Dusts based on Crystal Shards.<br>"+
+                "Currently: ×"+format(tmp.c.crystalsToMentality)+" to Mentality, ×"+format(tmp.c.crystalsToWeakling)+" to Weakling Dust."
+            },
+            done() {return player.c.points.gte(15)},
+        },
+        9: {
+            requirementDescription: "20 Crystal Shards",
+            effectDescription: "Unlocks <b>Crystals</b> tab.",
+            done() {return player.c.points.gte(20)},
+        },
+        10: {
+            requirementDescription: "9e999 Crystal Shards",
+            effectDescription: "Unlocks automation for <b>Mentality Strengthen</b> and <b>Weakling Strengthen</b>.",
+            toggles:[["c","autoStrengthen"]],
+            done() {return player.c.points.gte(9e999)},
+        },
+        20: {
             requirementDescription: "100 Unstable Dust",
             effectDescription() {
                 return "Alleviates the Weakling Dust effect based on Unstable Dust.<br>"+
@@ -401,13 +577,20 @@ addLayer("c", {
             },
             done() {return player.c.ud.gte(100)},
         },
-        5: {
-            requirementDescription: "7 Crystal Shards",
+        21: {
+            requirementDescription: "50,000 Unstable Dust",
             effectDescription() {
-                return "Boost Mentality based on Weakling Dusts.<br>"+
-                "Currently: ×"+format(tmp.c.wmConvert)+"."
+                return "<b>Weakling Strengthen</b> is slightly cheaper based on Unstable Dust.<br>"+
+                "Currently: /"+format(tmp.c.udNerfWSCost)+"."
             },
-            done() {return player.c.points.gte(5)},
+            done() {return player.c.ud.gte(50000)},
+        },
+        22: {
+            requirementDescription: "1,000,000 Unstable Dust",
+            effectDescription() {
+                return "Adds the 2nd effect to Unstable Dust.<br><i>this only applies when exceeding 1m Unstable Dust.</i>"
+            },
+            done() {return player.c.ud.gte(1e6)},
         },
         /*
         ?: {
@@ -425,16 +608,39 @@ addLayer("c", {
 addLayer("d", {
     name: "Dev Zone", // This is optional, only used in a few places, If absent it just uses the layer id.
     symbol: "D", // This appears on the layer's node. Default is the id with the first letter capitalized
-    row: "side", // Horizontal position within a row. By default it uses the layer id and sorts in alphabetical order
+    //row: "side", // Horizontal position within a row. By default it uses the layer id and sorts in alphabetical order
     color: "#ffffffff",
-    resource: ":)",
+    tooltip() { // Optional, tooltip displays when the layer is locked
+        return ("Dev Options")
+    },
     tabFormat: [["display-text", "Welcome to the Dev Center! In here, you can fiddle with some settings regarding the game!"],
     "blank",
-    "clickables"
+    "clickables",
+    "blank",
+    ["display-text", "Wanna test some other thing? You can put them in here!"],
+    "blank",
+    ["display-text", function() {
+        return "<b>Mentality Strengthen</b> Count: "+getBuyableAmount("w",11)+
+        "<br><b>Weakling Strengthen</b> Count: "+getBuyableAmount("w",12)+
+        "<br><br>Current Mentality: "+format(player.w.MSStatus.points)+
+        "<br>Which is enough to buy "+format(player.w.MSStatus.buyCount.sub(player.w.MSStatus.bought))+" <b>Mentality Strengthen</b> at once."+
+        "<br>along with the total cost of "+format(tmp.w.MSCostDifference)+"."+
+        "<br><br>Current Weakling Dust: "+format(player.w.WSStatus.points)+
+        "<br>Which is enough to buy "+format(player.w.WSStatus.buyCount.sub(player.w.WSStatus.bought))+" <b>Weakling Strengthen</b> at once."+
+        "<br>along with the total cost of "+format(tmp.w.WSCostDifference)+"."
+        //"Projected chance for <b style=\"color: #d937faff;\">Evil Crystal</b>: "+format(one.sub(nonEvil))+"%.<br>"+
+        //"Projected chance for Non-Evil Crystal: "+format(nonEvil)+"%."
+    }],
+    "blank",
+    ["display-text",function() {return "Currently, the test value is:"+
+        "<br><h1 style=\"color: rgb(62, 194, 211);\"> "+format(player.w.MSStatus.base)+" </h1>"
+    }],
+    "blank",
+    "milestones"
     ],
     startData() {return {
-        unlocked: true
-        }
+        unlocked: true,
+    }
     },
     update(diff) {
         player.devSpeed = tmp.d.speedCalc
@@ -487,6 +693,14 @@ addLayer("d", {
                 else return true
             },
             unlocked: true
+        }
+    },
+    milestones: {
+        0: {
+            requirementDescription: "30+ Crystal Shards",
+            effectDescription: "Unlocks automation for <b>Mentality Strengthen</b> and <b>Weakling Strengthen</b>.",
+            toggles:[["d","autoStrengthen"]],
+            done() {return false}
         }
     }
 })

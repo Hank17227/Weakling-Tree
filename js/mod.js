@@ -12,14 +12,20 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.05",
-	name: "Hotfix (I guess)",
+	num: "0.07",
+	name: "Crystal & Automation",
 }
 
 let changelog = `<h1>Changelog:</h1><br><br>
+	<h3>v0.07 - 2026/2/24</h3><br>
+		Finish the implementation of automation on Weakling buyables <i>(this took me quite a while)</i><br>
+		Adding Crystal Shards milestones until next stage (Crystal merging)<br><br>
+	<h3>v0.06 - 2026/2/19</h3><br>
+		Re-added Unstable Dust and Crystal Milestones<br>
+		Added a secret option ;)<br><br>
 	<h3>v0.05 - 2026/1/26</h3><br>
-		Fixed the Weakling Dust generation when having less than 1 Point (no more decay mess horray)
-		A Crystal Rework is coming soon...<br>
+		Fixed the Weakling Dust generation when having less than 1 Point (no more decay mess horray)<br>
+		A Crystal Rework is coming soon...<br><br>
 	<h3>v0.03 - 2025/10/15</h3><br>
 		Adds a "decay" function which allows you to progress the game faster<br>
 		<i>(this took a while)</i><br>
@@ -60,12 +66,113 @@ function getPointGen() {
 	if(hasUpgrade("w",23)) gain = gain.mul(upgradeEffect("w",23))
 	if(hasMilestone("c",1)) gain = gain.mul(4)
 	if(hasMilestone("c",3)) gain = gain.mul(3)
-	if(hasMilestone("c",4)) gain = gain.mul(tmp.c.wmConvert)
+	if(hasMilestone("c",5)) gain = gain.mul(tmp.c.wmConvert)
+	if(hasMilestone("c",6)) gain = gain.mul(tmp.c.crystalsToMentality)
+	if(hasMilestone("c",22) & player.c.ud.gte(1e6)) gain = gain.div(tmp.c.udEffect.pow(0.4))
 	gain = (player.points.gte(1)?gain:Decimal.max(gain,0.05))
 	return gain
 }
 
 // Custom function that will be used here
+function totalCostFormula(base, constant, x, factor, offset) { // the original formula for clarity
+    return base.mul(factor).mul(factor.pow(x.sub(offset)).sub(1)).div(factor.sub(1)).add(constant)
+}
+
+function totalCost(buyableStatus) { // function that puts the variables into a single object
+	let base = buyableStatus.base
+	let constant = buyableStatus.constant
+	let x = buyableStatus.buyCount
+	let factor = buyableStatus.factor
+	let offset = buyableStatus.offset
+	let sumCost = totalCostFormula(base, constant, x, factor, offset)
+	return sumCost
+}
+
+function totalBuysFormula(points, base, constant, factor, offset) { // the original formula for clarity
+    let finalBuys = Decimal.log10((points.sub(constant)).mul(factor.sub(1)).div(base).div(factor).add(1)).div(Decimal.log10(factor)).add(offset)
+	return finalBuys.floor()
+}
+
+function totalBuys(buyableStatus) { // function that puts the variables into a single object
+	let points = buyableStatus.points.add(buyableStatus.boughtCost)
+	let base = buyableStatus.base
+	let constant = buyableStatus.constant
+	let factor = buyableStatus.factor
+	let offset = buyableStatus.offset
+    buyableStatus.buyCount = totalBuysFormula(points, base, constant, factor, offset)
+	return
+}
+
+function totalBuysWithScaling(buyableStatus) { // 3rd layer of function that accounts for scaling, returns object for updating
+	let injectedBuyCount = buyableStatus.buyCount
+	if (!buyableStatus.injected) totalBuys(buyableStatus) 
+	for (let scaleIndex = new Decimal(0); scaleIndex.lt(buyableStatus.scaleStart.length); scaleIndex = scaleIndex.add(1)) {
+		if (buyableStatus.buyCount.gte(buyableStatus.scaleStart[scaleIndex])) {
+			buyableStatus.buyCount = buyableStatus.scaleStart[scaleIndex].sub(1)
+			buyableStatus.constant = totalCost(buyableStatus)
+			buyableStatus.base = buyableStatus.base.mul(buyableStatus.factor.pow(buyableStatus.scaleStart[scaleIndex].sub(scaleIndex.lt(1)?1:buyableStatus.scaleStart[scaleIndex.sub(1)])))
+			buyableStatus.factor = buyableStatus.scaledFactor[scaleIndex]
+			buyableStatus.offset = buyableStatus.scaleStart[scaleIndex].sub(1)
+			if(!buyableStatus.injected) totalBuys(buyableStatus)
+			else buyableStatus.buyCount = injectedBuyCount
+		}
+    }
+	return buyableStatus
+
+	// old function implementation
+	/*
+	if (buyableStatus.buyCount.gte(buyableStatus.scaleStart[0])) {
+        buyableStatus.buyCount = buyableStatus.scaleStart[0].sub(1)
+        buyableStatus.constant = totalCost(buyableStatus)
+        buyableStatus.base = buyableStatus.base.mul(buyableStatus.factor.pow(buyableStatus.scaleStart[0].sub(1)))
+        buyableStatus.factor = buyableStatus.scaledFactor[0]
+        buyableStatus.offset = buyableStatus.scaleStart[0].sub(1)
+        if(!buyableStatus.injected) totalBuys(buyableStatus)
+		else buyableStatus.buyCount = injectedBuyCount
+    }
+    if (buyableStatus.buyCount.gte(buyableStatus.scaleStart[1])) {
+        buyableStatus.buyCount = buyableStatus.scaleStart[1].sub(1)
+        buyableStatus.constant = totalCost(buyableStatus)
+        buyableStatus.base = buyableStatus.base.mul(buyableStatus.factor.pow(buyableStatus.scaleStart[1].sub(buyableStatus.scaleStart[0])))
+        buyableStatus.factor = buyableStatus.scaledFactor[1]
+        buyableStatus.offset = buyableStatus.scaleStart[1].sub(1)
+        if(!buyableStatus.injected) totalBuys(buyableStatus)
+		else buyableStatus.buyCount = injectedBuyCount
+    }*/
+}
+
+function MSInitialize(buyableStatus) {
+	buyableStatus.points = player.points
+	buyableStatus.base = tmp.w.buyables[11].baseCost
+	buyableStatus.constant = tmp.w.buyables[11].baseCost
+    buyableStatus.factor = new Decimal(5)
+    buyableStatus.offset = new Decimal(0)
+	buyableStatus.buyCount = new Decimal(0)
+	buyableStatus.injected = false
+	buyableStatus.bought = getBuyableAmount("w",11).sub(1)
+	buyableStatus.boughtCost = new Decimal(0)
+	return buyableStatus
+}
+
+function WSInitialize(buyableStatus) {
+	buyableStatus.points = player.w.points
+	buyableStatus.base = tmp.w.buyables[12].baseCost
+	buyableStatus.constant = tmp.w.buyables[12].baseCost
+    buyableStatus.factor = new Decimal(3)
+    buyableStatus.offset = new Decimal(0)
+	buyableStatus.buyCount = new Decimal(0)
+	buyableStatus.injected = false
+	buyableStatus.bought = getBuyableAmount("w",12).sub(1)
+	buyableStatus.boughtCost = new Decimal(0)
+	return buyableStatus
+}
+
+function test(buyableStatus) {
+	let times = new Decimal(0)
+	for (let scaleIndex = new Decimal(0); scaleIndex.lt(buyableStatus.scaleStart.length); scaleIndex = scaleIndex.add(1))
+		times = buyableStatus.scaleStart[scaleIndex]
+	return times
+}
 /*
 let best = new Decimal(0)
 function bestPoints() {
@@ -88,13 +195,13 @@ function addedPlayerData() { return {
 
 // Display extra things at the top of the page
 var displayThings = [
-	//function() {return "Current Endgame: Unlock layer <b>Crystals</b>"}
+	function() {return "Current Endgame: Unlock subtab <b>Crystals</b> under Crystals tab<br>(20 Crystal Shards)"}
 ]
 
 // Determines when the game "ends"
 function isEndgame() {
-	return player.points.gte(new Decimal("e280000000"))
-	//return hasUpgrade("w",25)
+	//return player.points.gte(new Decimal("e280000000"))
+	return hasMilestone("c",9)
 }
 
 
