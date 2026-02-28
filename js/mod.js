@@ -12,13 +12,24 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.07",
-	name: "Crystal & Automation",
+	num: "0.7.5",
+	name: "The Crystal Update Continuation",
 }
 
 let changelog = `<h1>Changelog:</h1><br><br>
+	<h3>v0.7.5 - 2026/2/28</h3><br>
+		<b>The Crystal Update Continuation</b><br>
+		Implemented some of the features on both Virtuous and Evil Crystals!<br>
+		(up to 50 Crystals of both type because why not)<br><br>
+		Some bug fixes along the way<br>
+		(finally got the automation on live!)<br><br>
+	<h3>v0.7.1 - 2026/2/26</h3><br>
+		<b style='color: rgb(44, 186, 241)'>Colorful Update</b><br>
+		Implemented the UI for Crystals tab,<br>
+		more updates coming soon...<br>
+		Changed the version name from "0.07" to "0.7" to include sub versions<br><br>
 	<h3>v0.07 - 2026/2/24</h3><br>
-		Finish the implementation of automation on Weakling buyables <i>(this took me quite a while)</i><br>
+		Finished the implementation of automation on Weakling buyables <i>(this took me quite a while)</i><br>
 		Adding Crystal Shards milestones until next stage (Crystal merging)<br><br>
 	<h3>v0.06 - 2026/2/19</h3><br>
 		Re-added Unstable Dust and Crystal Milestones<br>
@@ -68,7 +79,13 @@ function getPointGen() {
 	if(hasMilestone("c",3)) gain = gain.mul(3)
 	if(hasMilestone("c",5)) gain = gain.mul(tmp.c.wmConvert)
 	if(hasMilestone("c",6)) gain = gain.mul(tmp.c.crystalsToMentality)
-	if(hasMilestone("c",22) & player.c.ud.gte(1e6)) gain = gain.div(tmp.c.udEffect.pow(0.4))
+	if(hasMilestone("c",22) & player.c.ud.gte(1e6)) gain = gain.div(player.c.ude.pow(0.4))
+	if(hasMilestone("c",43)) gain = gain.mul(tmp.c.vcToMentality)
+	
+	/* softcap1: 1e7 Mentality gain (not so useful for now tbh)
+	let sftcap1 = new Decimal(1e7)
+	if(player.points.gte(sftcap1)) gain = gain.div(sftcap1).pow(0.5).mul(sftcap1)*/
+	
 	gain = (player.points.gte(1)?gain:Decimal.max(gain,0.05))
 	return gain
 }
@@ -90,6 +107,7 @@ function totalCost(buyableStatus) { // function that puts the variables into a s
 
 function totalBuysFormula(points, base, constant, factor, offset) { // the original formula for clarity
     let finalBuys = Decimal.log10((points.sub(constant)).mul(factor.sub(1)).div(base).div(factor).add(1)).div(Decimal.log10(factor)).add(offset)
+	if (finalBuys.lt(0)) return finalBuys.ceil()
 	return finalBuys.floor()
 }
 
@@ -147,7 +165,7 @@ function MSInitialize(buyableStatus) {
 	buyableStatus.constant = tmp.w.buyables[11].baseCost
     buyableStatus.factor = new Decimal(5)
     buyableStatus.offset = new Decimal(0)
-	buyableStatus.buyCount = new Decimal(0)
+	buyableStatus.buyCount = new Decimal(-1)
 	buyableStatus.injected = false
 	buyableStatus.bought = getBuyableAmount("w",11).sub(1)
 	buyableStatus.boughtCost = new Decimal(0)
@@ -160,7 +178,7 @@ function WSInitialize(buyableStatus) {
 	buyableStatus.constant = tmp.w.buyables[12].baseCost
     buyableStatus.factor = new Decimal(3)
     buyableStatus.offset = new Decimal(0)
-	buyableStatus.buyCount = new Decimal(0)
+	buyableStatus.buyCount = new Decimal(-1)
 	buyableStatus.injected = false
 	buyableStatus.bought = getBuyableAmount("w",12).sub(1)
 	buyableStatus.boughtCost = new Decimal(0)
@@ -172,6 +190,92 @@ function test(buyableStatus) {
 	for (let scaleIndex = new Decimal(0); scaleIndex.lt(buyableStatus.scaleStart.length); scaleIndex = scaleIndex.add(1))
 		times = buyableStatus.scaleStart[scaleIndex]
 	return times
+}
+
+function vcEcMani(vc, ec) {
+    player.c.vc = new Decimal(vc)
+    player.c.ec = new Decimal(ec)
+	return ""
+}
+
+function vcEffectsList(start=new Decimal(0), end=new Decimal(0), effectOnly=false) {
+	let lockPre = "<div style='color: gray; padding: 5px'>◇ Next unlocks at "
+	let lockPost = " Virtuous Crystals.</div>"
+	let effectsLocked = [
+		"<div style='color: gray;'>◇ Next unlocks at 1 Virtuous Crystal.</div>",
+        lockPre+"3"+lockPost,
+		lockPre+"5"+lockPost,
+		lockPre+"10"+lockPost,
+		lockPre+"30"+lockPost,
+		lockPre+"50"+lockPost,
+		lockPre+"70"+lockPost,
+	]
+	let effects = [
+		"◆ ×"+colorText("b",tmp.c.colorvc,format(tmp.c.vcToCrystalShards))+" Crystal Shards gained on reset.<br>",
+        "<div style='padding: 10px'>◆ Keep the first 2 rows of<br>Weakling upgrades.</div>",
+        "<div style='padding: 10px'>◆ Unlock automation for<br><b>Mentality Strengthen</b><br>and <b>Weakling Strengthen</b>.</div>",
+		"<div style='padding: 10px'>◆ ×"+colorText("b",tmp.c.colorvc,format(tmp.c.vcToMentality))+" Mentality gain.<br></div>",
+		"<div style='padding: 10px'>◆ ×"+colorText("b",tmp.c.colorvc,format(tmp.c.vcToWeakling))+" Weakling Dust gain.<br></div>",
+		"<div style='padding: 10px'>◆ Unlock Virtuous Crystal upgrades.<br>(next update)</div>"
+	]
+	let effectText = ""
+	for (let index = start; index.lt(end); index = index.add(1))
+		effectText = effectText+effects[index]
+	if(!effectOnly) effectText = effectText+effectsLocked[end]
+	return effectText
+}
+
+function ecEffectsList(start=new Decimal(0), end=new Decimal(0), effectOnly=false) {
+	let lockPre = "<div style='color: gray; padding: 5px'>◇ Next unlocks at "
+	let lockPost = " Evil Crystals.</div>"
+	let effectsLocked = [
+		"<div style='color: gray;'>◇ Next unlocks at 1 Evil Crystal.</div>",
+        lockPre+"5"+lockPost,
+		lockPre+"10"+lockPost,
+		lockPre+"25"+lockPost,
+		lockPre+"40"+lockPost,
+		lockPre+"50"+lockPost,
+		lockPre+"70"+lockPost,
+	]
+	let effects = [
+		"◆ ×"+colorText("b",tmp.c.colorec,format(new Decimal(tmp.c.ecToUD)))+" Unstable Dust gain.<br>",
+        "<div style='padding: 10px'>◆ Unlock new milestones for<br>Unstable Dust.</div>",
+		"<div style='padding: 10px'>◆ ×"+colorText("b",tmp.c.colorec,format(tmp.c.ecToWeaklingEffect))+" to the Weakling Dust effect.<br></div>",
+		"<div style='padding: 10px'>◆ +"+colorText("b",tmp.c.colorec,format(player.c.ec.sub(24), 0))+" to the cost of condensing Crystals.<br></div>",
+		"<div style='padding: 10px'>◆ /"+colorText("b",tmp.c.colorec,format(tmp.c.ecToVCEffects))+" to the first 5 effects on<br>Virtuous Crystals.<br></div>",
+		"<div style='padding: 10px'>◆ Unlock Evil Crystal upgrades.<br>(next update)</div>"
+	]
+	let effectText = ""
+	for (let index = start; index.lt(end); index = index.add(1))
+		effectText = effectText+effects[index]
+	if(!effectOnly) effectText = effectText+effectsLocked[end]
+	return effectText
+}
+
+/*
+function crystalEffectsInitializer(status) {
+	for(let index = 0; index < status.length; index = index+1)
+		status[index] = false
+	return status
+}*/
+
+function crystalTypeDecider() {
+	if(player.c.vc.add(player.c.ec).eq(0)) {
+		player.c.vc = player.c.vc.add(1)
+		return
+	}
+	if(player.c.ec.gte(50)&&player.c.vc.lt(50)) {
+		player.c.vc = player.c.vc.add(1)
+		return
+	}
+	if(player.c.vc.gte(50)&&player.c.ec.lt(50)) {
+		player.c.ec = player.c.ec.add(1)
+		return
+	}
+	let rng = Math.floor(Math.random()*100)
+	if(rng >= 50) player.c.vc = player.c.vc.add(1)
+	else player.c.ec = player.c.ec.add(1)
+	return
 }
 /*
 let best = new Decimal(0)
@@ -195,13 +299,21 @@ function addedPlayerData() { return {
 
 // Display extra things at the top of the page
 var displayThings = [
-	function() {return "Current Endgame: Unlock subtab <b>Crystals</b> under Crystals tab<br>(20 Crystal Shards)"}
+	function() {
+		//let num = new Decimal("1f5")
+		let vc = "Virtuous Crystals"
+		let ec = "Evil Crystals"
+		let vcColored = colorText("b",tmp.c.colorvc,vc)
+		let ecColored = colorText("b",tmp.c.colorec,ec)
+		return "Current Endgame:<br>Have both 50 "+vcColored+" and "+ecColored+"."
+		//return num	
+	}
 ]
 
 // Determines when the game "ends"
 function isEndgame() {
-	//return player.points.gte(new Decimal("e280000000"))
-	return hasMilestone("c",9)
+	//return player.points.gte(new Decimal("ee280000000"))
+	return (hasMilestone("c",45)&hasMilestone("c",75))
 }
 
 
