@@ -1,7 +1,8 @@
 # Weakling-Tree
 
-An incremental game engine based on The Prestige Tree. It still requires programming knowledge, but it's mostly pretty easy things and copy/pasting.
+### Preface
+Are you a heavy addict of incremental games? And also are you a masochist? If the above describes you quite well, then congratulations, you're now trapped in a realm where you'll go insane at times!
 
-[Look here for a tutorial on getting started with modding with TMT](docs/tutorials/getting-started.md)
+Your journey starts off with an extreme low amount of Mentality (which means you're near the edge of crashing out), in which it will recover slowly by itself. However, you quickly noticed a huge tree that's above you *(no pun intended)*, and it's constantly draining your energy, rendering the recovery almost impossible. Your goal is to find a way to co-live with the tree and make a survival in this well-designed jail!
 
-You can look in the [documentation](docs/!general-info.md) for more information on how it all works, or look at the code in [layers.js](js/layers.js) to see what it all looks like.
+To put it shortly, discover the tree and become immortal!
