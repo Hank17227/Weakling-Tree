@@ -7,6 +7,7 @@ addLayer("w", {
         "blank",
         "main-display",
         "resource-display",
+        ["display-text", function() {return ""}],
         //"prestige-button",
         "upgrades"
     ],
@@ -35,8 +36,8 @@ addLayer("w", {
             constant: new Decimal(5),
             factor: new Decimal(3),
             offset: new Decimal(0),
-            scaleStart: [new Decimal(12), new Decimal(24)],
-            scaledFactor: [new Decimal(6), new Decimal(12)],
+            scaleStart: [new Decimal(12), new Decimal(24), new Decimal(81)],
+            scaledFactor: [new Decimal(6), new Decimal(12), new Decimal(120)],
             buyCount: new Decimal(0),
             injected: false, // filter to the totalBuysWithScaling so that it doesn't mess up the calc with set buyCount value
             bought: new Decimal(0),
@@ -110,10 +111,12 @@ addLayer("w", {
         gain = gain.times(hasMilestone("c",4)?3:1)
         gain = gain.times(hasMilestone("c",6)?tmp.c.crystalsToWeakling:1)
         gain = gain.times(hasMilestone("c",44)?tmp.c.vcToWeakling:1)
+        if(hasUpgrade(this.layer,31)) gain = gain.pow(1.2)
         return gain
     },
     gainMult() { // Calculate the multiplier for main currency from bonuses
         mult = new Decimal(1)
+        if(hasUpgrade("c",55)) mult = mult.mul(tmp.c.effect)
         return mult
     },
     gainExp() { // Calculate the exponent on main currency from bonuses
@@ -128,18 +131,15 @@ addLayer("w", {
     doReset(resettingLayer) {
         let keep = []
         if(hasMilestone("c",41) && resettingLayer=="c") keep.push("upgrades")
-        if(layers[resettingLayer].row > this.row) layerDataReset("w",keep)
+        if(layers[resettingLayer].row > this.row) layerDataReset(this.layer,keep)
     },
 
     effect() {
         let eff = new Decimal(1)
         let exponent = 0.5
         let weakling = player[this.layer].points
-        //let lastBuyableCost = tmp[this.layer].buyables[11].cost.div(5)
-        //let pointsRatio = player.points.div(lastBuyableCost)
-        //let growthRate = new Decimal(0.01)
-        //growthRate = growthRate.pow(decay(pointsRatio))
         if(hasUpgrade(this.layer,13)) exponent = 0.4
+        if(hasUpgrade(this.layer,33)) exponent = 0.25
         if(weakling.gt(0)) eff = Decimal.max(weakling.pow(exponent).add(1),1)
         if(hasMilestone("c",20)) eff = eff.div(tmp.c.udNerfWeaklingEffect)
         if(hasMilestone("c",72)) eff = eff.mul(tmp.c.ecToWeaklingEffect)
@@ -180,8 +180,10 @@ addLayer("w", {
                 return consume
             },
             effect(x) {
-                let eff = 1
-                if(x.gte(0)) eff = Decimal.pow(2,x)
+                let eff = new Decimal(1)
+                let base = new Decimal(2)
+                if(x.gte(0)) eff = Decimal.pow(base,x)
+                if(hasUpgrade("c",14)) eff = base.add(upgradeEffect("c",14)).pow(x)
                 return eff
             },
             canAfford() {return player.points.gte(this.cost())},
@@ -191,10 +193,14 @@ addLayer("w", {
             },
             buyMax() {
                 if (!this.canAfford()) return
-                player.points = player.points.sub(tmp.w.MSCostDifference)
+                if(!hasUpgrade("c",14)) player.points = player.points.sub(tmp.w.MSCostDifference)
                 setBuyableAmount(this.layer, this.id, getBuyableAmount(this.layer, this.id).add(player.w.MSStatus.buyCount).sub(player.w.MSStatus.bought))
             },
-            display() {return "Double the Mentality gain!\n"+
+            display() {
+                let gainDesc = "Double the Mentality gain!\n"
+                let baseGain = new Decimal(2)
+                if (hasUpgrade("c",14)) gainDesc = "×"+format(baseGain.add(upgradeEffect("c",14)))+" Mentality gain!<br>"
+                return gainDesc+
                 "Currently: "+format(this.effect())+"×\n\n"+
                 "Cost: "+format(this.cost())+" Points"
             }
@@ -208,20 +214,24 @@ addLayer("w", {
             },
             cost(x) {
                 let base = this.baseCost()
-                let scale = [new Decimal(3), new Decimal(6), new Decimal(12)]
+                let scale = [new Decimal(3), new Decimal(6), new Decimal(12), new Decimal(120)]
                 let scaledCost = [
                     base.mul(scale[0].pow(x)),
                     base.mul(scale[0].pow(11)).mul(scale[1].pow(x.sub(11))),
-                    base.mul(scale[0].pow(11)).mul(scale[1].pow(12)).mul(scale[2].pow(x.sub(23)))
+                    base.mul(scale[0].pow(11)).mul(scale[1].pow(12)).mul(scale[2].pow(x.sub(23))),
+                    base.mul(scale[0].pow(11)).mul(scale[1].pow(12)).mul(scale[2].pow(57)).mul(scale[3].pow(x.sub(80))),
                 ]
                 let consume = scaledCost[0]
                 if(x.gte(12)&&x.lt(24)) consume = scaledCost[1]
-                if(x.gte(24)) consume = scaledCost[2]
+                if(x.gte(24)&&x.lt(81)) consume = scaledCost[2]
+                if(x.gte(81)) consume = scaledCost[3]
                 return consume
             },
             effect(x) {
-                let eff = 1
-                if(x.gte(0)) eff = Decimal.pow(2,x)
+                let eff = new Decimal(1)
+                let base = new Decimal(2)
+                if(x.gte(0)) eff = Decimal.pow(base,x)
+                if(hasUpgrade("c",34)) eff = base.add(upgradeEffect("c",34)).pow(x)
                 return eff
             },
             canAfford() {return player[this.layer].points.gte(this.cost())},
@@ -232,10 +242,14 @@ addLayer("w", {
             },
             buyMax() {
                 if(!this.canAfford()) return;
-                player.w.points = player.w.points.sub(tmp.w.WSCostDifference)
+                if(!hasUpgrade("c",34)) player.w.points = player.w.points.sub(tmp.w.WSCostDifference)
                 setBuyableAmount(this.layer, this.id, getBuyableAmount(this.layer, this.id).add(player.w.WSStatus.buyCount).sub(player.w.WSStatus.bought))
             },
-            display() {return "Double the Weakling Dust gain!\n"+
+            display() {
+                let gainDesc = "Double the Weakling Dust gain!\n"
+                let baseGain = new Decimal(2)
+                if (hasUpgrade("c",34)) gainDesc = "×"+format(baseGain.add(upgradeEffect("c",34)))+" Weakling Dust gain!<br>"
+                return gainDesc+
                 "Currently: "+format(this.effect())+"×\n\n"+
                 "Cost: "+format(this.cost())+" Weakling Dust"
             }
@@ -260,7 +274,7 @@ addLayer("w", {
         },
         13: {
             title: "Alleviate",
-            description: "Decrease the division amount from Weakling Dust.<br>(^0.5 → ^0.4)",
+            description: "Decrease the base division exponent of Weakling Dust effect.<br>(^0.5 → ^0.4)",
             cost: new Decimal(1000),
             unlocked() {return (hasUpgrade(this.layer,12))}
         },
@@ -300,6 +314,7 @@ addLayer("w", {
                 return eff
             },
             effectDisplay() {
+                if (tmp.w.upgrades[21].effect.gte(1000)) return format(this.effect())+"× (softcapped)"
                 return format(this.effect())+"×"
             },
             unlocked() {return (hasUpgrade(this.layer,15))}
@@ -347,6 +362,7 @@ addLayer("w", {
             effect() {
                 let eff = tmp.w.upgrades[24].base
                 let sftcap = new Decimal(10000)
+                if (hasUpgrade("w",34)) sftcap = new Decimal(1e9)
                 if (eff.gte(sftcap)) eff = eff.div(sftcap).pow(0.5).mul(sftcap)
                 return eff
             },
@@ -358,24 +374,77 @@ addLayer("w", {
         },
         25: {
             title: "Crystalize",
-            description: "Unlocks the next layer.",
+            description() {
+                if(hasUpgrade("c",53)) {
+                    return "Weakling Dust boosts the gain of Crystals at a greatly reduced rate.<br>"+
+                    "Currently: "+format(this.effect())+"×"
+                }
+                return "Unlocks the next layer."
+            },
+            effect() {
+                let eff = new Decimal(1)
+                if(hasUpgrade("c",53)) eff = player.w.points.pow(0.05).div(1.2).max(1)
+                return eff
+            },
             cost: new Decimal(3e9),
             unlocked() {return (hasUpgrade(this.layer,24))}
         },
-        /*
         31: {
-            title: "???",
-            description: "???",
-            cost: new Decimal(1e17),
-            unlocked() {return (hasUpgrade(this.layer,25)&&hasMilestone("c",4))}
-        },*/
+            title: "Weakling Up IV",
+            description: "Weakling Dust gain ^1.2.",
+            cost: new Decimal(1e24),
+            unlocked() {return (hasMilestone("c",25))}
+        },
+        32: {
+            title: "Real Weakening",
+            description: "Weakling Dust divides the first Unstable Dust effect.",
+            cost: new Decimal(1e30),
+            effect() {
+                let eff = player.w.points.pow(0.125).div(1.5).max(1)
+                return eff
+            },
+            effectDisplay() {
+                return "/"+format(this.effect())
+            },
+            unlocked() {return (hasUpgrade("c",31))}
+        },
+        33: {
+            title: "Alleviate II",
+            description: "Decrease the base division exponent of Weakling Dust effect.<br>(^0.4 → ^0.25)",
+            cost: new Decimal(1e40),
+            unlocked() {return (hasUpgrade("c",32))}
+        },
+        34: {
+            title: "Powerful Weakling II",
+            description: "Delays the softcap of <b>Powerful Weakling</b>.<br>(softcap start: "+format(1e4)+" -> "+format(1e9)+")",
+            cost: new Decimal(1e51),
+            unlocked() {return (hasUpgrade("c",33))}
+        },
+        35: {
+            title: "Duality",
+            description: "Enhances the effect of <b>Benediction</b> and <b>Imprecation</b> to twice of their original amount.",
+            tooltip: "You can rest for a while after this upgrade~",
+            cost: new Decimal(1e57),
+            unlocked() {return (hasUpgrade("c",34))}
+        },
     }
 }) // Weaklings
 
 addLayer("c", {
     tabFormat: {
         Milestones: {
-            content:["main-display",
+            content:[
+            ["display-text", function() {
+                let mainText = "You have "+layerText("h2","c",formatWhole(player.c.points))+" Crystal Shards<br><br>"
+                if(hasUpgrade("c",55)) mainText = "You have "+layerText("h2","c",formatWhole(player.c.points))+" Crystal Shards, which increase the base of Weakling Dust by "+layerText("h2","c",formatWhole(tmp.c.effect))+".<br>"
+                return mainText
+            }],
+            ["display-text", function() {
+                let gainText = ""
+                let csBaseGain = player.w.points.div(2e10).pow(0.07)
+                if(hasUpgrade("c",55)) gainText = "You are gaining "+colorText("b",tmp.c.color,format(csBaseGain.mul(tmp.c.gainMult).div(2)))+" Crystal Shards per second.<br><br>"
+                return gainText
+            }],
             "prestige-button",
             "blank",
             ["display-text",
@@ -387,27 +456,42 @@ addLayer("c", {
             ["blank","10px"],
             ["display-text", function() {
                 return "You have <b style='color: "+tmp.w.color+"; text-shadow:0px 0px 10px;'>"+format(player.w.points)+"</b> Weakling Dust."+
-                " (+"+format(tmp.w.passiveGeneration)+"/s)"
+                " (+"+format(tmp.w.passiveGeneration.mul(tmp.w.gainMult))+"/s)"
             }],
             "blank",
             ["microtabs","goals"]
             ]
         },
         Crystals: {
-            unlocked() {return hasMilestone("c", 9)},
+            unlocked() {return hasMilestone("c", 7)},
             content: [["infobox","introBox"],
-            "main-display",["clickables",[1]],
+            ["display-text", function() {
+                let mainText = "You have "+layerText("h2","c",formatWhole(player.c.points))+" Crystal Shards<br><br>"
+                if(hasUpgrade("c",55)) mainText = "You have "+layerText("h2","c",formatWhole(player.c.points))+" Crystal Shards, which increase the base of Weakling Dust by "+layerText("h2","c",formatWhole(tmp.c.effect))+".<br>"
+                return mainText
+            }],
+            ["display-text", function() {
+                let gainText = ""
+                let csBaseGain = player.w.points.div(2e10).pow(0.07)
+                if(hasUpgrade("c",55)) gainText = "You are gaining "+colorText("b",tmp.c.color,format(csBaseGain.mul(tmp.c.gainMult).div(2)))+" Crystal Shards per second.<br><br>"
+                return gainText
+            }],
+            ["clickables",[1]],
             "blank", "blank",
             ["row", [
                 ["column", [
                     "blank",
                     ["display-text", function() {
-                        return "You have "+colorText("h2",tmp.c.colorvc,format(player.c.vc, 0))+" Virtuous Crystal"+(player.c.vc.eq(1)?"":"s")+"."+
-                        "<br>They have the following effects:"
-                        //+vcEcMani(30,30)
+                        let currencyDisplay = colorText("h2",tmp.c.colorvc,formatWhole(player.c.vc))
+                        let addText = "" // additional text
+                        if(hasUpgrade("c",11)) addText = "<br>(Multiplier: ×"+formatWhole(upgradeEffect("c",11))+")"
+                        if(hasUpgrade("c",21)) addText = "<br>You are gaining "+colorText("b",tmp.c.colorvc,formatWhole(upgradeEffect("c",21)))+" VC per second."
+                        return "You have "+currencyDisplay+" Virtuous Crystal"+(player.c.vc.eq(1)?"":"s")+"."+
+                        "<br>They have the following effects:"+addText
+                        //+vcEcMani(0,0)
                     }],
                     "blank",
-                    "h-line",
+                    ["h-line","300px"],
                     "blank",
                     ["display-text", function() {                   
                         let stat = vcEffectsList()
@@ -429,7 +513,10 @@ addLayer("c", {
                         if(hasMilestone("c",42)) stat = vcEffectsList(new Decimal(4),new Decimal(3))
                         if(hasMilestone("c",43)) stat = vcEffectsList(new Decimal(3),new Decimal(4))
                         if(hasMilestone("c",44)) stat = vcEffectsList(new Decimal(3),new Decimal(5))
-                        if(hasMilestone("c",45)) stat = vcEffectsList(new Decimal(3),new Decimal(6),true)
+                        if(hasMilestone("c",45)) stat = vcEffectsList(new Decimal(3),new Decimal(6))
+                        if(hasMilestone("c",46)) stat = vcEffectsList(new Decimal(3),new Decimal(7))
+                        if(hasMilestone("c",47)) stat = vcEffectsList(new Decimal(3),new Decimal(8))
+                        if(hasMilestone("c",48)) stat = vcEffectsList(new Decimal(3),new Decimal(9),true)
                         return stat
                     }]
                 ], {'width': '350px', 'max-height': '700px',
@@ -438,11 +525,15 @@ addLayer("c", {
                 ["column", [
                     "blank",
                     ["display-text", function() {
-                    return "You have "+colorText("h2",tmp.c.colorec,format(player.c.ec, 0))+" Evil Crystal"+(player.c.ec.eq(1)?"":"s")+"."+
-                    "<br>They have the following effects:"
+                    let currencyDisplay = colorText("h2",tmp.c.colorec,formatWhole(player.c.ec))
+                    let addText = "" // additional text
+                    if(hasUpgrade("c",31)) addText = "<br>(Multiplier: ×"+formatWhole(upgradeEffect("c",31))+")"
+                    if(hasUpgrade("c",41)) addText = "<br>You are gaining "+colorText("b",tmp.c.colorec,formatWhole(upgradeEffect("c",41)))+" EC per second."
+                    return "You have "+currencyDisplay+" Evil Crystal"+(player.c.ec.eq(1)?"":"s")+"."+
+                    "<br>They have the following effects:"+addText
                     }],
                     "blank",
-                    "h-line",
+                    ["h-line","300px"],
                     "blank",
                     ["display-text", function() {
                         let stat = ecEffectsList()
@@ -451,14 +542,61 @@ addLayer("c", {
                         if(hasMilestone("c",72)) stat = ecEffectsList(new Decimal(0),new Decimal(3))
                         if(hasMilestone("c",73)) stat = ecEffectsList(new Decimal(0),new Decimal(4))
                         if(hasMilestone("c",74)) stat = ecEffectsList(new Decimal(0),new Decimal(5))
-                        if(hasMilestone("c",75)) stat = ecEffectsList(new Decimal(0),new Decimal(6),true)
+                        if(hasMilestone("c",75)) stat = ecEffectsList(new Decimal(0),new Decimal(6))
+                        if(hasMilestone("c",76)) stat = ecEffectsList(new Decimal(0),new Decimal(7))
+                        if(hasMilestone("c",77)) stat = ecEffectsList(new Decimal(0),new Decimal(8))
+                        if(hasMilestone("c",78)) stat = ecEffectsList(new Decimal(0),new Decimal(9),true)
                         return stat
                     }]
                 ], {'width': '350px', 'max-height': '700px', 
                     'background-color': 'rgba(217, 55, 250, 0.2)'
                 }]
-            ]]
-        ]}
+            ]], ["blank","30px"]
+        ]},
+        Upgrades: {
+            unlocked() {return hasMilestone("c",45)||hasMilestone("c",75)},
+            content: [
+                ["display-text", function() {
+                    return "You have condensed "+colorText("h3",tmp.c.color,formatWhole(player.c.total))+" Crystal Shards in total.<br><br>"+
+                    "You have "+colorText("h3",tmp.c.colorvc,formatWhole(player.c.vc))+" Virtuous Crystal"+(player.c.vc.eq(1)?"":"s")+"."
+                }], "blank",
+                ["row",[
+                    ["display-text", "↑", {'font-size':'100px','color': 'rgb(18, 187, 41)','text-shadow':'0px 0px 10px'}],
+                    ["blank",["40px","10px"]],
+                    ["v-line","250px"],
+                    ["blank",["40px","10px"]],
+                    ["display-text", function() {
+                        if(!hasMilestone("c",45)) return colorText("h1","rgba(18, 187, 40, 0.5)","Nothing here yet...")
+                    }],
+                    ["upgrades",[1,2]]
+                ], {'width': '700px', 'height': '300px','background-color': 'rgba(18, 187, 40, 0.25)'}],
+                "blank",
+                ["display-text", function() {
+                    return "You have "+colorText("h3",tmp.c.colorec,formatWhole(player.c.ec))+" Evil Crystal"+(player.c.ec.eq(1)?"":"s")+"."
+                }],"blank",
+                ["row",[
+                    ["display-text", "↓", {'font-size':'100px', 'color': 'rgb(217, 55, 250)','text-shadow':'0px 0px 10px'}],
+                    ["blank",["40px","10px"]],
+                    ["v-line","250px"],
+                    ["blank",["40px","10px"]],
+                    ["display-text", function() {
+                        if(!hasMilestone("c",75)) return colorText("h1","rgba(217, 55, 250, 0.5)","Nothing here yet...")
+                    }],
+                    ["upgrades",[3,4]]
+                ], {'width': '700px', 'height': '300px','background-color': 'rgba(217, 55, 250, 0.2)'}],
+                "blank",
+                ["display-text", function() {
+                    return "You have "+colorText("h3",tmp.c.color,formatWhole(player.c.points))+" Crystal Shard"+(player.c.points.eq(1)?"":"s")+"."
+                }], "blank",
+                ["row",[
+                    ["display-text", function() {
+                        if(!hasUpgrade("c",12)||!hasUpgrade("c",32)) return colorText("h1","rgba(209, 31, 31, 0.5)","Nothing here yet...")
+                    }],
+                    ["upgrades",[5,6]]
+                ], {'width': '700px', 'height': '300px','background-color': 'rgba(209, 31, 31, 0.2)'}],
+                "blank"
+            ]
+        }
     },
     microtabs: {
         goals: {
@@ -487,7 +625,8 @@ addLayer("c", {
                 " or <br>"+colorText("b",tmp.c.colorec,"Evil Crystals")+", in which they will aid (or harm) your progress"+
                 " in various ways!<br><br>"+
                 "Combining a Crystal, regardless of the type, will perform a reset of this layer! You will also gain a "+
-                colorText("b",tmp.c.colorvc,"Virtuous Crystal")+" for your first combination."
+                colorText("b",tmp.c.colorvc,"Virtuous Crystal")+" for your first combination.<br><br>"+
+                "<div style='color: rgb(167, 167, 167)'>(Abbriviations - VC: Virtuous Crystals, EC: Evil Crystals)</div>"
             }
         }
     },
@@ -499,10 +638,14 @@ addLayer("c", {
         autoStrengthen: false,
         vc: new Decimal(0), // Virtuous Crystals
         ec: new Decimal(0), // Evil Crystals
+        vcu: new Decimal(0), // VC Upgrades
+        ecu: new Decimal(0), // EC Upgrades
+        totalvc: new Decimal(0),
+        totalec: new Decimal(0)
     }},
-    color: "#d11f1fff",
+    color: "rgb(209, 31, 31)",
     colorvc: "rgb(18, 187, 41)", // color for Virtuous Crystals
-    colorec: "#d937faff", // color for Evil Crystals
+    colorec: "rgb(217, 55, 250)", // color for Evil Crystals
     requires: new Decimal(2e10), // Can be a function that takes requirement increases into account
     resource: "Crystal Shards", // Name of prestige currency
     resourceSingular: "Crystal Shard",
@@ -511,41 +654,58 @@ addLayer("c", {
     type: "normal", // normal: cost to gain currency depends on amount gained. static: cost depends on how much you already have
     exponent: 0.07, // Prestige currency exponent
 
+    effect() {
+        let eff = player.c.points.div(1e11).max(1).pow(0.25).div(1.6).max(1)
+        return eff.floor()
+    },
+
     passiveGeneration() {
         let gain = new Decimal(0)
+        if(hasUpgrade("c",55)) gain = gain.add(0.5)
         return gain
     },
     gainMult() { // Calculate the multiplier for main currency from bonuses
         mult = new Decimal(1)
-        if(player.c.vc.gte(1)) mult = mult.mul(tmp.c.vcToCrystalShards)
+        if(hasMilestone("c",40)) mult = mult.mul(tmp.c.vcToCrystalShards)
+        if(hasUpgrade("c",13)) mult = mult.mul(upgradeEffect("c",13))
         return mult
     },
     gainExp() { // Calculate the exponent on main currency from bonuses
         return new Decimal(1)
     },
 
-    nonEvilCrystalChance() {
-        let projectedCrystals = Decimal.round(Decimal.pow(player.w.points.div("2e10"),Decimal.div(1,3)))
-        return Decimal.pow(0.75,projectedCrystals.sub(1))
-    },
-
+    // UD & Crystal Shards Session ########################################################################################
     udBase() {
         return player.w.points.gte(2e10)?player.w.points.div(2e10).sub(1):new Decimal(0)
     },
 
-    udEffect() {
+    udBaseEffect() {
         let eff = player.c.ud.add(1).pow(0.5)
         if(hasMilestone("c",23)) eff = eff.pow(1.2)
         return eff
     },
 
+    udEffect1() {
+        let eff = tmp.c.udBaseEffect
+        if(hasUpgrade("c",51)) eff = eff.pow(0.9)
+        if(hasUpgrade("w",32)) eff = eff.div(upgradeEffect("w",32))
+        return eff
+    },
+
+    udEffect2() {
+        let eff = tmp.c.udBaseEffect.pow(0.4)
+        return eff
+    },
+
     udEffect2Desc() {
-        return " and <b>Mentality</b> gain by <h3><b>"+format(player.c.ude.pow(0.4))+"</b></h3>."
+        return " and <b>Mentality</b> gain by <h3><b>"+format(tmp.c.udEffect2)+"</b></h3>."
     },
 
     udGainMult() {
         let mult = new Decimal(1)
-        if(player.c.ec.gte(1)) mult = mult.mul(tmp.c.ecToUD)
+        if(hasMilestone("c",70)) mult = mult.mul(tmp.c.ecToUD)
+        if(hasMilestone("c",24)) mult = mult.mul(tmp.c.crystalsToUD)
+        if(hasUpgrade("c",52)) mult = mult.mul(upgradeEffect("c",52))
         return mult
     },
 
@@ -569,6 +729,7 @@ addLayer("c", {
         return mult
     },
 
+    // Crystals Session ########################################################################################
     crystalsToWeakling() {
         let mult = new Decimal(1)
         if (player.c.points.gte(2)) {mult = player.c.points.log10().mul(6.4)}
@@ -581,43 +742,146 @@ addLayer("c", {
         return mult
     },
 
+    crystalsToUD() {
+        let mult = new Decimal(1)
+        let vc = player.c.vc
+        let ec = player.c.ec
+        if(hasMilestone("c",24)) mult = mult.mul(vc.add(ec)).pow(0.4).mul(2)
+        return mult
+    },
+
+    crystalBaseCost() {
+        let base = new Decimal(20)
+        if(hasMilestone("c",73)) base = base.add(tmp.c.ecToCostIncrease)
+        return base
+    },
+
     crystalCost() {
-        let cost = new Decimal(20)
-        if(hasMilestone("c",73)) cost = cost.add(player.c.ec.sub(24))
+        let cost = tmp.c.crystalBaseCost
+        if(hasUpgrade("c",32)) cost = cost.pow(tmp.c.crystalCostExp).floor()
         return cost
     },
 
-    vcToCrystalShards() {
-        let mult = player.c.vc.add(1).pow(0.5)
-        if(hasMilestone("c",74)) mult = mult.div(tmp.c.ecToVCEffects)
+    crystalCostExp() {
+        let exp = new Decimal(1.2)
+        if(hasMilestone("c",77)) exp = exp.add(tmp.c.ecToCostIncreaseExp)
+        return exp
+    },
+
+    crystalsQuantity() {
+        let amount = tmp.c.crystalBaseCost.div(20).pow(0.5)
+        if(hasUpgrade("c",53)) amount = amount.mul(upgradeEffect("w",25))
+        return amount.floor()
+    },
+
+    // VC Session ########################################################################################
+    vcGain() {
+        let gain = new Decimal(1)
+        if(hasUpgrade("c",11)) gain = gain.mul(upgradeEffect("c",11))
+        if(hasUpgrade("c",32)) gain = gain.mul(tmp.c.crystalsQuantity)
+        return gain
+    },
+
+    vcToCrystalShards() { // Effect 1
+        let effectiveVC = player.c.vc
+        if(hasMilestone("c",46)) effectiveVC = effectiveVC.add(tmp.c.vcToEffectiveVC)
+        let mult = effectiveVC.add(1).pow(0.5).max(1)
+        if(hasUpgrade("c",12)) mult = mult.pow(2)
+        if(hasMilestone("c",74)) mult = mult.div(tmp.c.ecToVCEffects).max(1)
         return mult
     },
 
-    vcToMentality() {
-        let mult = player.c.vc.sub(1).pow(1.2).div(3).add(1)
-        if(hasMilestone("c",74)) mult = mult.div(tmp.c.ecToVCEffects)
+    vcToMentality() { // Effect 4
+        let effectiveVC = player.c.vc
+        if(hasMilestone("c",46)) effectiveVC = effectiveVC.add(tmp.c.vcToEffectiveVC)
+        let mult = effectiveVC.sub(1).max(0).pow(1.2).div(3).add(1).max(1)
+        if(hasMilestone("c",74)) mult = mult.div(tmp.c.ecToVCEffects).max(1)
+        if(hasMilestone("c",47)) mult = mult.mul(tmp.c.vcEff4Eff5Enhance)
         return mult
     },
 
-    vcToWeakling() {
-        let mult = player.c.vc.sub(10).pow(1.5).div(7.5).add(2).max(1)
-        if(hasMilestone("c",74)) mult = mult.div(tmp.c.ecToVCEffects)
+    vcToWeakling() { // Effect 5
+        let effectiveVC = player.c.vc
+        if(hasMilestone("c",46)) effectiveVC = effectiveVC.add(tmp.c.vcToEffectiveVC)
+        let mult = effectiveVC.sub(10).max(0).pow(1.5).div(7.5).add(1).max(1)
+        if(hasMilestone("c",74)) mult = mult.div(tmp.c.ecToVCEffects).max(1)
+        if(hasMilestone("c",47)) mult = mult.mul(tmp.c.vcEff4Eff5Enhance)
         return mult
     },
 
-    ecToUD() {
-        let mult = player.c.ec.mul(2).add(1).pow(0.5)
+    vcToEffectiveVC() { // Effect 7
+        vcuCount()
+        //hasMilestone("c",48)
+        if (true) totalVCCalc()
+        let effectiveVCInc = new Decimal(10)
+        let ten = new Decimal(10)
+        if(player.c.vcu.gte(3)) effectiveVCInc = effectiveVCInc.mul(ten.pow(player.c.vcu.sub(2).mul(1.096)))
+        if (hasMilestone("c",48)) effectiveVCInc = effectiveVCInc.add(player.c.totalvc.div(4))
+        return effectiveVCInc.floor()
+    },
+
+    vcEff4Eff5Enhance() { // Effect 8
+        let effectiveVC = player.c.vc
+        if(hasMilestone("c",46)) effectiveVC = effectiveVC.add(tmp.c.vcToEffectiveVC)
+        let mult = effectiveVC.pow(0.15)
         return mult
     },
 
-    ecToWeaklingEffect() {
-        let mult = player.c.ec.sub(1).pow(0.9).div(0.6666).add(1.404)
+    // EC Session ########################################################################################
+    ecGain() {
+        let gain = new Decimal(1)
+        if(hasUpgrade("c",31)) gain = gain.mul(upgradeEffect("c",31))
+        if(hasUpgrade("c",32)) gain = gain.mul(tmp.c.crystalsQuantity)
+        return gain
+    },
+
+    ecToUD() { // Effect 1
+        let effectiveEC = player.c.ec
+        if(hasMilestone("c",76)) effectiveEC = effectiveEC.add(tmp.c.ecToEffectiveEC)
+        let mult = effectiveEC.mul(2).add(1).pow(0.5)
         return mult
     },
 
-    ecToVCEffects() {
-        let mult = player.c.ec.sub(40).pow(0.25).add(1.2).pow(0.2)
+    ecToCostIncrease() { // Effect 3
+        let effectiveEC = player.c.ec
+        if(hasMilestone("c",76)) effectiveEC = effectiveEC.add(tmp.c.ecToEffectiveEC)
+        let addCost = effectiveEC.sub(24).max(0)
+        let sftcap = 10000
+        if(effectiveEC.gte(sftcap)) addCost = addCost.div(sftcap).pow(2/3).mul(sftcap)
+        return addCost
+    },
+
+    ecToWeaklingEffect() { // Effect 4
+        let effectiveEC = player.c.ec
+        if(hasMilestone("c",76)) effectiveEC = effectiveEC.add(tmp.c.ecToEffectiveEC)
+        let mult = effectiveEC.sub(1).max(0).pow(0.9).div(0.6666).add(1.404)
         return mult
+    },
+
+    ecToVCEffects() { // Effect 5
+        let effectiveEC = player.c.ec
+        if(hasMilestone("c",76)) effectiveEC = effectiveEC.add(tmp.c.ecToEffectiveEC)
+        let mult = effectiveEC.sub(40).max(0).pow(0.25).add(1.2).pow(0.2)
+        if(hasUpgrade("c",33)) mult = mult.pow(upgradeEffect("c",33))
+        return mult
+    },
+
+    ecToEffectiveEC() { // Effect 7
+        ecuCount()
+        //hasMilestone("c",78)
+        if (true) totalECCalc()
+        let effectiveECInc = new Decimal(10)
+        let ten = new Decimal(10)
+        if(player.c.ecu.gte(3)) effectiveECInc = effectiveECInc.mul(ten.pow(player.c.ecu.sub(2).mul(1.096)))
+        if (hasMilestone("c",78)) effectiveECInc = effectiveECInc.add(player.c.totalec.div(4))
+        return effectiveECInc.floor()
+    },
+
+    ecToCostIncreaseExp() { // Effect 8 added to 3
+        let effectiveEC = player.c.ec
+        if(hasMilestone("c",77)) effectiveEC = effectiveEC.add(tmp.c.ecToEffectiveEC)
+        let addExp = effectiveEC.div(5000).max(1).log10().div(20).add(0.05)
+        return addExp
     },
 
     /*test() {
@@ -626,9 +890,10 @@ addLayer("c", {
     },*/
 
     update(diff) {
-        player.c.ude = tmp.c.udEffect
+        player.c.ude = tmp.c.udEffect1
         player.c.ud = tmp.c.udBase.mul(tmp.c.udGainMult)
-        
+        if(hasUpgrade("c",21)) player.c.vc = player.c.vc.add(upgradeEffect("c",21).mul(diff))
+        if(hasUpgrade("c",41)) player.c.ec = player.c.ec.add(upgradeEffect("c",41).mul(diff))
     },
 
     row: 1, // Row the layer is in on the tree (0 is the first row)
@@ -643,6 +908,10 @@ addLayer("c", {
     doReset(resettingLayer) {
         player.c.ud = new Decimal(0)
     },
+
+    resetsNothing() {return hasUpgrade("c",54)},
+
+    canReset() {return !hasUpgrade("c",55)},
     
     milestones: {
         0: {
@@ -689,18 +958,11 @@ addLayer("c", {
             },
             done() {return player.c.points.gte(15)},
         },
-        9: {
+        7: {
             requirementDescription: "20 Crystal Shards",
             effectDescription: "Unlocks <b>Crystals</b> tab.",
             done() {return player.c.points.gte(20)},
         },
-        /*
-        10: {
-            requirementDescription: "9e999 Crystal Shards",
-            effectDescription: "Unlocks automation for <b>Mentality Strengthen</b> and <b>Weakling Strengthen</b>.",
-            toggles:[["c","autoStrengthen"]],
-            done() {return player.c.points.gte(9e999)},
-        },*/
         20: {
             requirementDescription: "100 Unstable Dust",
             effectDescription() {
@@ -735,33 +997,26 @@ addLayer("c", {
         24: {
             requirementDescription: "1e12 Unstable Dust",
             effectDescription() {
-                return "Boosts Unstable Dust gain based on the sum of Virtuous Crystals and Evil Crystals."
+                return "Boosts Unstable Dust gain based on the sum of Virtuous Crystals and Evil Crystals.<br>"+
+                "Currently: ×"+format(tmp.c.crystalsToUD)+"."
             },
             done() {return player.c.ud.gte(1e12)},
             unlocked() {return hasMilestone("c",71)}
         },
         25: {
-            requirementDescription: "1e15 Unstable Dust",
-            effectDescription() {
-                return "Unlocks a new row of Weakling Upgrades."
-            },
-            done() {return player.c.ud.gte(1e15)},
-            unlocked() {return hasMilestone("c",71)}
-        },
-        26: {
             requirementDescription: "1e18 Unstable Dust",
             effectDescription() {
-                return "Weakling Dust and Unstable Dust boost each other."
+                return "Unlocks a new row of Weakling Upgrades."
             },
             done() {return player.c.ud.gte(1e18)},
             unlocked() {return hasMilestone("c",71)}
         },
-        27: {
-            requirementDescription: "1e33 Unstable Dust",
+        26: {
+            requirementDescription: "1e70 Unstable Dust",
             effectDescription() {
                 return "Unlocks two new layers."
             },
-            done() {return player.c.ud.gte(1e33)},
+            done() {return player.c.ud.gte(1e70)},
             unlocked() {return hasMilestone("c",71)}
         },
         40: {
@@ -788,6 +1043,18 @@ addLayer("c", {
             requirementDescription: "50 Virtuous Crystals",
             done() {return player.c.vc.gte(50)},
         },
+        46: {
+            requirementDescription: "500 Virtuous Crystals",
+            done() {return player.c.vc.gte(500)},
+        },
+        47: {
+            requirementDescription: "5,000 Virtuous Crystals",
+            done() {return player.c.vc.gte(5000)},
+        },
+        48: {
+            requirementDescription: "100,000 Virtuous Crystals",
+            done() {return player.c.vc.gte(100000)},
+        },
         70: {
             requirementDescription: "1 Evil Crystal",
             done() {return player.c.ec.gte(1)},
@@ -812,27 +1079,37 @@ addLayer("c", {
             requirementDescription: "50 Evil Crystals",
             done() {return player.c.ec.gte(50)},
         },
-        /*
-        ?: {
-            requirementDescription: "5 Crystals",
-            effectDescription: "Unlocks a new row of upgrades on Weakling.",
-            done() {return player.c.points.gte(5)},
-            unlocked() {return hasMilestone(this.layer, 3)}
-        },*/
+        76: {
+            requirementDescription: "500 Evil Crystals",
+            done() {return player.c.ec.gte(500)},
+        },
+        77: {
+            requirementDescription: "5,000 Evil Crystals",
+            done() {return player.c.ec.gte(5000)},
+        },
+        78: {
+            requirementDescription: "100,000 Evil Crystals",
+            done() {return player.c.ec.gte(100000)},
+        },
     },
     clickables: {
         11: {
             title() {
-                return "<h2>Condense "+tmp.c.crystalCost+" Crystal Shards into a Crystal<br></h2>"
+                return "<h2>Condense "+formatWhole(tmp.c.crystalCost)+" Crystal Shards into "+(hasUpgrade("c",32)?formatWhole(tmp.c.crystalsQuantity):formatWhole(1))+" Crystal"+((tmp.c.crystalsQuantity.eq(1)||!hasUpgrade("c",32))?"":"s")+"<br></h2>"
             },
             display: "<h3>Note: This forces a Crystal Shards reset.</h3>",
             onClick() {
                 player.c.points = player.c.points.sub(tmp.c.crystalCost)
-                doReset("c", force=true)
                 crystalTypeDecider()
+                doReset("c", force=true)
+            },
+            onHold() { // QOL for mobile players
+                player.c.points = player.c.points.sub(tmp.c.crystalCost)
+                crystalTypeDecider()
+                doReset("c", force=true)
             },
             canClick() {
-                return player.c.points.gte(tmp.c.crystalCost)
+                return (player.c.points.gte(tmp.c.crystalCost)&&(!hasUpgrade("c",21)||!hasUpgrade("c",41)))
             },
             unlocked: true,
             style: {'width': '400px', 'height': '100px'}
@@ -843,7 +1120,7 @@ addLayer("c", {
                 if(getClickableState("c",21)==1) return "ON"
                 return "OFF"
             },
-            unlocked() {return player.c.vc.gte(5)},
+            unlocked() {return hasMilestone("c",72)},
             canClick: true,
             onClick() {
                 if(getClickableState("c",21)==1) {
@@ -857,6 +1134,490 @@ addLayer("c", {
             },
             style: {'width': "45px", 'min-height': "45px", "background-color": 'rgb(18, 187, 41)'}
         }
+    },
+    upgrades: {
+        11: {
+            title: "Faith",
+            description: "Increase the gain of Virtuous Crystals based on total Crystal Shards.",
+            currencyDisplayName: "Virtuous Crystals",
+            currencyInternalName: "vc",
+            currencyLayer: "c",
+            cost: new Decimal(50),
+            effect() {
+                let eff = player.c.total.pow(0.2).div(1.15).max(1).floor()
+                return eff
+            },
+            effectDisplay() {
+                return "×"+formatWhole(this.effect())
+            },
+            style: {"background"() {
+                let color1 = "rgb(18, 187, 41)"
+                let color2 = "rgb(109, 189, 120)"
+                let color = color2
+                if(hasUpgrade("c",11)) color = color1
+                if(player.c.vc.gte(tmp.c.upgrades[11].cost)&&!hasUpgrade("c",11)) {
+                    color = "linear-gradient("+color2+","+color1+")"
+                }
+                return color
+            }},
+            unlocked() {return (hasMilestone(this.layer,45))}
+        },
+        12: {
+            title: "Empowerment",
+            description: "Significantly increase the first VC effect.",
+            currencyDisplayName: "Virtuous Crystals",
+            currencyInternalName: "vc",
+            currencyLayer: "c",
+            cost: new Decimal(100),
+            effect() {
+                let eff = new Decimal(2)
+                return eff
+            },
+            effectDisplay() {
+                return "^"+formatWhole(this.effect())
+            },
+            style: {"background"() {
+                let color1 = "rgb(18, 187, 41)"
+                let color2 = "rgb(109, 189, 120)"
+                let color = color2
+                if(hasUpgrade("c",12)) color = color1
+                if(player.c.vc.gte(tmp.c.upgrades[12].cost)&&!hasUpgrade("c",12)) {
+                    color = "linear-gradient("+color2+","+color1+")"
+                }
+                return color
+            }},
+            unlocked() {return (hasUpgrade(this.layer,11))}
+        },
+        13: {
+            title: "Enchantment",
+            description: "Crystal Shards boosts its own gain.",
+            currencyDisplayName: "Virtuous Crystals",
+            currencyInternalName: "vc",
+            currencyLayer: "c",
+            cost: new Decimal(1000),
+            effect() {
+                let eff = player.c.points.pow(0.14)
+                return eff
+            },
+            effectDisplay() {
+                return "×"+format(this.effect())
+            },
+            style: {"background"() {
+                let color1 = "rgb(18, 187, 41)"
+                let color2 = "rgb(109, 189, 120)"
+                let color = color2
+                if(hasUpgrade("c",13)) color = color1
+                if(player.c.vc.gte(tmp.c.upgrades[13].cost)&&!hasUpgrade("c",13)) {
+                    color = "linear-gradient("+color2+","+color1+")"
+                }
+                return color
+            }},
+            unlocked() {return (hasUpgrade(this.layer,12))}
+        },
+        14: {
+            title: "Benediction",
+            description: "<i>Mentality Strengthen</i> no longer costs anything, and its base is improved based on VC.",
+            currencyDisplayName: "Virtuous Crystals",
+            currencyInternalName: "vc",
+            currencyLayer: "c",
+            cost: new Decimal(10000),
+            effect() {
+                let eff = new Decimal(0.05)
+                let mult = new Decimal(0.04)
+                eff = eff.add(mult.mul(player.c.vc.max(1).log10()))
+                if(hasUpgrade("w",35)) eff = eff.mul(2)
+                return eff
+            },
+            effectDisplay() {
+                return "+"+format(this.effect())
+            },
+            style: {"background"() {
+                let color1 = "rgb(18, 187, 41)"
+                let color2 = "rgb(109, 189, 120)"
+                let color = color2
+                if(hasUpgrade("c",14)) color = color1
+                if(player.c.vc.gte(tmp.c.upgrades[14].cost)&&!hasUpgrade("c",14)) {
+                    color = "linear-gradient("+color2+","+color1+")"
+                }
+                return color
+            }},
+            unlocked() {return (hasUpgrade(this.layer,13))}
+        },
+        21: {
+            title: "Construction",
+            description: "Automatically gains VC based on its own gain multiplier.<br>You will no longer gain VC by Crystal condensation.",
+            currencyDisplayName: "Virtuous Crystals",
+            currencyInternalName: "vc",
+            currencyLayer: "c",
+            tooltip: "When having Destruction at the same time, ×10 the effect of this upgrade and disable the Crystals button.",
+            cost: new Decimal(1e9),
+            effect() {
+                let eff = tmp.c.crystalsQuantity.mul(upgradeEffect("c",11)).div(20)
+                if(hasUpgrade("c",21)&&hasUpgrade("c",41)) eff = eff.mul(10)
+                return eff
+            },
+            effectDisplay() {
+                return format(this.effect())+"/s"
+            },
+            style: {"background"() {
+                let color1 = "rgb(18, 187, 41)"
+                let color2 = "rgb(109, 189, 120)"
+                let color = color2
+                if(hasUpgrade("c",21)) color = color1
+                if(player.c.vc.gte(tmp.c.upgrades[21].cost)&&!hasUpgrade("c",21)) {
+                    color = "linear-gradient("+color2+","+color1+")"
+                }
+                return color
+            }},
+            unlocked() {return (hasUpgrade(this.layer,14))}
+        },
+        22: {
+            title: "placeholder",
+            description: "placeholder",
+            currencyDisplayName: "Virtuous Crystals",
+            currencyInternalName: "vc",
+            currencyLayer: "c",
+            cost: new Decimal(100),
+            style: {"background"() {
+                let color1 = "rgb(18, 187, 41)"
+                let color2 = "rgb(109, 189, 120)"
+                let color = color2
+                if(hasUpgrade("c",22)) color = color1
+                if(player.c.vc.gte(tmp.c.upgrades[22].cost)&&!hasUpgrade("c",22)) {
+                    color = "linear-gradient("+color2+","+color1+")"
+                }
+                return color
+            }},
+            unlocked() {return (hasUpgrade(this.layer,99))}
+        },
+        23: {
+            title: "placeholder",
+            description: "placeholder",
+            currencyDisplayName: "Virtuous Crystals",
+            currencyInternalName: "vc",
+            currencyLayer: "c",
+            cost: new Decimal(100),
+            style: {"background"() {
+                let color1 = "rgb(18, 187, 41)"
+                let color2 = "rgb(109, 189, 120)"
+                let color = color2
+                if(hasUpgrade("c",23)) color = color1
+                if(player.c.vc.gte(tmp.c.upgrades[23].cost)&&!hasUpgrade("c",23)) {
+                    color = "linear-gradient("+color2+","+color1+")"
+                }
+                return color
+            }},
+            unlocked() {return (hasUpgrade(this.layer,22))}
+        },
+        24: {
+            title: "placeholder",
+            description: "placeholder",
+            currencyDisplayName: "Virtuous Crystals",
+            currencyInternalName: "vc",
+            currencyLayer: "c",
+            cost: new Decimal(100),
+            style: {"background"() {
+                let color1 = "rgb(18, 187, 41)"
+                let color2 = "rgb(109, 189, 120)"
+                let color = color2
+                if(hasUpgrade("c",24)) color = color1
+                if(player.c.vc.gte(tmp.c.upgrades[24].cost)&&!hasUpgrade("c",24)) {
+                    color = "linear-gradient("+color2+","+color1+")"
+                }
+                return color
+            }},
+            unlocked() {return (hasUpgrade(this.layer,23))}
+        },
+        31: {
+            title: "Disbelief",
+            description: "Increase the gain of Evil Crystals based on total Crystal Shards.",
+            currencyDisplayName: "Evil Crystals",
+            currencyInternalName: "ec",
+            currencyLayer: "c",
+            cost: new Decimal(50),
+            effect() {
+                let eff = player.c.total.pow(0.22).div(1.35).max(1).floor()
+                return eff
+            },
+            effectDisplay() {
+                return "×"+formatWhole(this.effect())
+            },
+            style: {"background"() {
+                let color1 = "rgb(217, 55, 250)"
+                let color2 = "rgb(225, 151, 240)"
+                let color = color2
+                if(hasUpgrade("c",31)) color = color1
+                if(player.c.ec.gte(tmp.c.upgrades[31].cost)&&!hasUpgrade("c",31)) {
+                    color = "linear-gradient("+color2+","+color1+")"
+                }
+                return color
+            }},
+            unlocked() {return (hasMilestone(this.layer,75))}
+        },
+        32: {
+            title: "Rebellion",
+            description: "You can condense multiple Crystals at once, but the cost will increase drastically.",
+            currencyDisplayName: "Evil Crystals",
+            currencyInternalName: "ec",
+            currencyLayer: "c",
+            cost: new Decimal(100),
+            style: {"background"() {
+                let color1 = "rgb(217, 55, 250)"
+                let color2 = "rgb(225, 151, 240)"
+                let color = color2
+                if(hasUpgrade("c",32)) color = color1
+                if(player.c.ec.gte(tmp.c.upgrades[32].cost)&&!hasUpgrade("c",32)) {
+                    color = "linear-gradient("+color2+","+color1+")"
+                }
+                return color
+            }},
+            unlocked() {return (hasUpgrade(this.layer,31))}
+        },
+        33: {
+            title: "Degradation",
+            description: "Significantly increase the fifth EC effect.",
+            currencyDisplayName: "Evil Crystals",
+            currencyInternalName: "ec",
+            currencyLayer: "c",
+            cost: new Decimal(1200),
+            style: {"background"() {
+                let color1 = "rgb(217, 55, 250)"
+                let color2 = "rgb(225, 151, 240)"
+                let color = color2
+                if(hasUpgrade("c",33)) color = color1
+                if(player.c.ec.gte(tmp.c.upgrades[33].cost)&&!hasUpgrade("c",33)) {
+                    color = "linear-gradient("+color2+","+color1+")"
+                }
+                return color
+            }},
+            effect() {
+                let eff = new Decimal(4)
+                return eff
+            },
+            effectDisplay() {
+                return "^"+formatWhole(this.effect())
+            },
+            unlocked() {return (hasUpgrade(this.layer,32))}
+        },
+        34: {
+            title: "Imprecation",
+            description: "<i>Weakling Strengthen</i> no longer costs anything, and its base is improved based on EC.",
+            currencyDisplayName: "Evil Crystals",
+            currencyInternalName: "ec",
+            currencyLayer: "c",
+            cost: new Decimal(10000),
+            effect() {
+                let eff = new Decimal(0.05)
+                let mult = new Decimal(0.025)
+                eff = eff.add(mult.mul(player.c.ec.max(1).log10()))
+                if(hasUpgrade("w",35)) eff = eff.mul(2)
+                return eff
+            },
+            effectDisplay() {
+                return "+"+format(this.effect())
+            },
+            style: {"background"() {
+                let color1 = "rgb(217, 55, 250)"
+                let color2 = "rgb(225, 151, 240)"
+                let color = color2
+                if(hasUpgrade("c",34)) color = color1
+                if(player.c.ec.gte(tmp.c.upgrades[34].cost)&&!hasUpgrade("c",34)) {
+                    color = "linear-gradient("+color2+","+color1+")"
+                }
+                return color
+            }},
+            unlocked() {return (hasUpgrade(this.layer,33))}
+        },
+        41: {
+            title: "Destruction",
+            description: "Automatically gains EC based on its own gain multiplier.<br>You will no longer gain EC by Crystal condensation.",
+            currencyDisplayName: "Evil Crystals",
+            currencyInternalName: "ec",
+            currencyLayer: "c",
+            tooltip: "When having Construction at the same time, ×10 the effect of this upgrade and disable the Crystals button.",
+            cost: new Decimal(1e9),
+            effect() {
+                let eff = tmp.c.crystalsQuantity.mul(upgradeEffect("c",31)).div(20)
+                if(hasUpgrade("c",21)&&hasUpgrade("c",41)) eff = eff.mul(10)
+                return eff
+            },
+            effectDisplay() {
+                return format(this.effect())+"/s"
+            },
+            style: {"background"() {
+                let color1 = "rgb(217, 55, 250)"
+                let color2 = "rgb(225, 151, 240)"
+                let color = color2
+                if(hasUpgrade("c",41)) color = color1
+                if(player.c.ec.gte(tmp.c.upgrades[41].cost)&&!hasUpgrade("c",41)) {
+                    color = "linear-gradient("+color2+","+color1+")"
+                }
+                return color
+            }},
+            unlocked() {return (hasUpgrade(this.layer,34))}
+        },
+        42: {
+            title: "placeholder",
+            description: "placeholder",
+            currencyDisplayName: "Evil Crystals",
+            currencyInternalName: "ec",
+            currencyLayer: "c",
+            cost: new Decimal(100),
+            style: {"background"() {
+                let color1 = "rgb(217, 55, 250)"
+                let color2 = "rgb(225, 151, 240)"
+                let color = color2
+                if(hasUpgrade("c",42)) color = color1
+                if(player.c.ec.gte(tmp.c.upgrades[42].cost)&&!hasUpgrade("c",42)) {
+                    color = "linear-gradient("+color2+","+color1+")"
+                }
+                return color
+            }},
+            unlocked() {return (hasUpgrade(this.layer,99))}
+        },
+        43: {
+            title: "placeholder",
+            description: "placeholder",
+            currencyDisplayName: "Evil Crystals",
+            currencyInternalName: "ec",
+            currencyLayer: "c",
+            cost: new Decimal(100),
+            style: {"background"() {
+                let color1 = "rgb(217, 55, 250)"
+                let color2 = "rgb(225, 151, 240)"
+                let color = color2
+                if(hasUpgrade("c",43)) color = color1
+                if(player.c.ec.gte(tmp.c.upgrades[43].cost)&&!hasUpgrade("c",43)) {
+                    color = "linear-gradient("+color2+","+color1+")"
+                }
+                return color
+            }},
+            unlocked() {return (hasUpgrade(this.layer,42))}
+        },
+        44: {
+            title: "placeholder",
+            description: "placeholder",
+            currencyDisplayName: "Evil Crystals",
+            currencyInternalName: "ec",
+            currencyLayer: "c",
+            cost: new Decimal(100),
+            style: {"background"() {
+                let color1 = "rgb(217, 55, 250)"
+                let color2 = "rgb(225, 151, 240)"
+                let color = color2
+                if(hasUpgrade("c",44)) color = color1
+                if(player.c.ec.gte(tmp.c.upgrades[44].cost)&&!hasUpgrade("c",44)) {
+                    color = "linear-gradient("+color2+","+color1+")"
+                }
+                return color
+            }},
+            unlocked() {return (hasUpgrade(this.layer,43))}
+        },
+        51: {
+            title: "Fogging",
+            description: "The first Unstable Dust effect is now ^0.9.",
+            cost: new Decimal(1000),
+            style: {"background"() {
+                let color1 = "rgb(209, 31, 31)"
+                let color2 = "rgb(191, 143, 143)"
+                let color = color2
+                if(hasUpgrade("c",51)) color = color1
+                if(player.c.points.gte(tmp.c.upgrades[51].cost)&&!hasUpgrade("c",51)) {
+                    color = "linear-gradient("+color2+","+color1+")"
+                }
+                return color
+            }},
+            unlocked() {return (hasUpgrade(this.layer,12)&&hasUpgrade(this.layer,32))}
+        },
+        52: {
+            title: "Grinding",
+            description: "Crystal Shards boosts Unstable Dust at a greatly reduced rate.",
+            cost: new Decimal(50000),
+            effect() {
+                let eff = player.c.points.log10().mul(2.1)
+                return eff
+            },
+            effectDisplay() {
+                return "×"+format(this.effect())
+            },
+            style: {"background"() {
+                let color1 = "rgb(209, 31, 31)"
+                let color2 = "rgb(191, 143, 143)"
+                let color = color2
+                if(hasUpgrade("c",52)) color = color1
+                if(player.c.points.gte(tmp.c.upgrades[52].cost)&&!hasUpgrade("c",52)) {
+                    color = "linear-gradient("+color2+","+color1+")"
+                }
+                return color
+            }},
+            unlocked() {return (hasUpgrade(this.layer,13)&&hasUpgrade(this.layer,33))}
+        },
+        53: {
+            costCS: new Decimal(5e6),
+            costVC: new Decimal(50000),
+            costEC: new Decimal(50000),
+            fullDisplay() {
+                let title = "<h3>Foaming</h3>"
+                let description = "Change the description for <b>Crystalize</b>."
+                let cost = "Cost: "+formatWhole(tmp.c.upgrades[53].costCS)+" Crystal Shards, "+formatWhole(tmp.c.upgrades[53].costVC)+" VC and<br>"+formatWhole(tmp.c.upgrades[53].costEC)+" EC"
+                return title+"<br>"+description+"<br><br>"+cost
+            },
+            canAfford() {
+                let csCost = player.c.points.gte(tmp.c.upgrades[53].costCS)
+                let vcCost = player.c.vc.gte(tmp.c.upgrades[53].costVC)
+                let ecCost = player.c.ec.gte(tmp.c.upgrades[53].costEC)
+                return (csCost&&vcCost&&ecCost)
+            },
+            pay() {
+                player.c.points = player.c.points.sub(tmp.c.upgrades[53].costCS)
+                player.c.vc = player.c.vc.sub(tmp.c.upgrades[53].costVC)
+                player.c.ec = player.c.ec.sub(tmp.c.upgrades[53].costEC)
+            },
+            style: {"background"() {
+                let color1 = "rgb(209, 31, 31)"
+                let color2 = "rgb(191, 143, 143)"
+                let color = color2
+                if(hasUpgrade("c",53)) color = color1
+                if(tmp.c.upgrades[53].canAfford&&!hasUpgrade("c",53)) {
+                    color = "linear-gradient("+color2+","+color1+")"
+                }
+                return color
+            }},
+            unlocked() {return (hasUpgrade(this.layer,14)&&hasUpgrade(this.layer,34))}
+        },
+        54: {
+            title: "Clarity",
+            description: "Mentality and Weakling layer are no longer reset by condensing Crystal and Crystal Shards.",
+            cost: new Decimal(5e12),
+            style: {"background"() {
+                let color1 = "rgb(209, 31, 31)"
+                let color2 = "rgb(191, 143, 143)"
+                let color = color2
+                if(hasUpgrade("c",54)) color = color1
+                if(player.c.points.gte(tmp.c.upgrades[54].cost)&&!hasUpgrade("c",54)) {
+                    color = "linear-gradient("+color2+","+color1+")"
+                }
+                return color
+            }},
+            unlocked() {return (hasUpgrade(this.layer,41)&&hasUpgrade(this.layer,41))}
+        },
+        55: {
+            title: "Distillation",
+            description: "Gain 50% of Crystal Shards on reset. Adds an effect to Crystal Shard.",
+            tooltip: "This will also disable the prestige button of Crystal Shards.",
+            cost: new Decimal(1e16),
+            style: {"background"() {
+                let color1 = "rgb(209, 31, 31)"
+                let color2 = "rgb(191, 143, 143)"
+                let color = color2
+                if(hasUpgrade("c",55)) color = color1
+                if(player.c.points.gte(tmp.c.upgrades[55].cost)&&!hasUpgrade("c",55)) {
+                    color = "linear-gradient("+color2+","+color1+")"
+                }
+                return color
+            }},
+            unlocked() {return (hasUpgrade(this.layer,54))}
+        },
     }
 })
 
@@ -892,7 +1653,7 @@ addLayer("d", {
             "blank",
             ["display-text",function() {
                 return "Currently, the test value is:"+
-                "<br><h1 style=\"color: rgb(62, 194, 211);\"> "+format(player.w.MSStatus.constant)+" </h1>"
+                "<br><h1 style=\"color: rgb(62, 194, 211);\"> "+format(upgradeEffect("c",41))+" </h1>"
             }],
             "blank",
             "milestones"

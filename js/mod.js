@@ -12,11 +12,19 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.7.5",
-	name: "The Crystal Update Continuation",
+	num: "0.8",
+	name: "A Completed Crystal",
 }
 
 let changelog = `<h1>Changelog:</h1><br><br>
+	<h3>v0.8 - 2026/3/5</h3><br>
+		<b style='color: rgb(209, 31, 31)'>A Completed Crystal</b><br>
+		Finished the making of Crystal layer! (I am very proud)<br>
+		Enjoy the process of being a slow bum and then soaring at the very end!<br><br>
+	<h3>v0.7.6 - 2026/3/4</h3><br>
+		<b>The Crystal Upgrades!</b><br>
+		3/8 VC, 3/8 EC, and 2/10 Crystal Shards Upgrades had implemented!<br>
+		added the UI in Crystal Upgrades (it has the similar structure to Crystals tab)<br><br>
 	<h3>v0.7.5 - 2026/2/28</h3><br>
 		<b>The Crystal Update Continuation</b><br>
 		Implemented some of the features on both Virtuous and Evil Crystals!<br>
@@ -47,9 +55,25 @@ let changelog = `<h1>Changelog:</h1><br><br>
 		Enables dev speed :)<br><br>
 	<h3>v0.01 - 2025/10/13</h3><br>
 		add the layer "Weaklings"<br>
-		where it produces weakling points...`
+		where it produces weakling points...<br><br>`
 
-let winText = `Congratulations! You have reached the end and beaten this game, but for now...`
+let winText = `Congratulations! You have endured the mental challenge the game had thrown at you and become the immortal!<br>(or perhaps you're a masochist?)`
+
+// Display extra things at the top of the page
+var displayThings = [
+	function() {
+		//let num = new Decimal("1f5")
+		return "Current Endgame: Reach <b style='text-shadow: 0px 0px 10px'>1.00e70</b> Unstable Dust."
+		//return num	
+	}
+]
+
+// Determines when the game "ends"
+function isEndgame() {
+	//return player.points.gte(new Decimal("ee280000000"))
+	return (hasMilestone("c",26))
+}
+
 
 // If you add new functions anywhere inside of a layer, and those functions have an effect when called, add them here.
 // (The ones here are examples, all official functions are already taken care of)
@@ -160,6 +184,8 @@ function totalBuysWithScaling(buyableStatus) { // 3rd layer of function that acc
 }
 
 function MSInitialize(buyableStatus) {
+	buyableStatus.scaleStart = [new Decimal(10)]
+	buyableStatus.scaledFactor = [new Decimal(15)]
 	buyableStatus.points = player.points
 	buyableStatus.base = tmp.w.buyables[11].baseCost
 	buyableStatus.constant = tmp.w.buyables[11].baseCost
@@ -173,6 +199,8 @@ function MSInitialize(buyableStatus) {
 }
 
 function WSInitialize(buyableStatus) {
+	buyableStatus.scaleStart = [new Decimal(12), new Decimal(24), new Decimal(81)]
+	buyableStatus.scaledFactor = [new Decimal(6), new Decimal(12), new Decimal(120)]
 	buyableStatus.points = player.w.points
 	buyableStatus.base = tmp.w.buyables[12].baseCost
 	buyableStatus.constant = tmp.w.buyables[12].baseCost
@@ -208,15 +236,20 @@ function vcEffectsList(start=new Decimal(0), end=new Decimal(0), effectOnly=fals
 		lockPre+"10"+lockPost,
 		lockPre+"30"+lockPost,
 		lockPre+"50"+lockPost,
-		lockPre+"70"+lockPost,
+		lockPre+formatWhole(500)+lockPost,
+		lockPre+formatWhole(5000)+lockPost,
+		lockPre+formatWhole(1e5)+lockPost,
 	]
 	let effects = [
 		"◆ ×"+colorText("b",tmp.c.colorvc,format(tmp.c.vcToCrystalShards))+" Crystal Shards gained on reset.<br>",
-        "<div style='padding: 10px'>◆ Keep the first 2 rows of<br>Weakling upgrades.</div>",
+        "<div style='padding: 10px'>◆ Keep all of Weakling upgrades<br>on reset.</div>",
         "<div style='padding: 10px'>◆ Unlock automation for<br><b>Mentality Strengthen</b><br>and <b>Weakling Strengthen</b>.</div>",
 		"<div style='padding: 10px'>◆ ×"+colorText("b",tmp.c.colorvc,format(tmp.c.vcToMentality))+" Mentality gain.<br></div>",
 		"<div style='padding: 10px'>◆ ×"+colorText("b",tmp.c.colorvc,format(tmp.c.vcToWeakling))+" Weakling Dust gain.<br></div>",
-		"<div style='padding: 10px'>◆ Unlock Virtuous Crystal upgrades.<br>(next update)</div>"
+		"<div style='padding: 10px'>◆ Unlock Virtuous Crystal upgrades.</div>",
+		"<div style='padding: 10px'>◆ +"+colorText("b",tmp.c.colorvc,formatWhole(tmp.c.vcToEffectiveVC))+" effective Virtuous Crystals to the VC effects.<div style='color: rgb(167, 167, 167)'>(based on the amount of VC upgrades)</div></div>",
+		"<div style='padding: 10px'>◆ The 4th and 5th effects are "+colorText("b",tmp.c.colorvc,formatWhole(tmp.c.vcEff4Eff5Enhance.sub(1).mul(100)))+"% stronger.</div>",
+		"<div style='padding: 10px'>◆ A quarter of the total VC also adds into the effective VC count.<div style='color: rgb(167, 167, 167)'>(You have "+colorText("b",tmp.c.colorvc,formatWhole(player.c.totalvc))+" total VC)</div></div>"
 	]
 	let effectText = ""
 	for (let index = start; index.lt(end); index = index.add(1))
@@ -235,16 +268,24 @@ function ecEffectsList(start=new Decimal(0), end=new Decimal(0), effectOnly=fals
 		lockPre+"25"+lockPost,
 		lockPre+"40"+lockPost,
 		lockPre+"50"+lockPost,
-		lockPre+"70"+lockPost,
+		lockPre+formatWhole(500)+lockPost,
+		lockPre+formatWhole(5000)+lockPost,
+		lockPre+formatWhole(1e5)+lockPost,
 	]
 	let effects = [
 		"◆ ×"+colorText("b",tmp.c.colorec,format(new Decimal(tmp.c.ecToUD)))+" Unstable Dust gain.<br>",
         "<div style='padding: 10px'>◆ Unlock new milestones for<br>Unstable Dust.</div>",
 		"<div style='padding: 10px'>◆ ×"+colorText("b",tmp.c.colorec,format(tmp.c.ecToWeaklingEffect))+" to the Weakling Dust effect.<br></div>",
-		"<div style='padding: 10px'>◆ +"+colorText("b",tmp.c.colorec,format(player.c.ec.sub(24), 0))+" to the cost of condensing Crystals.<br></div>",
+		"<div style='padding: 10px'>◆ +"+colorText("b",tmp.c.colorec,formatWhole(tmp.c.ecToCostIncrease))+" to the cost of condensing Crystals.<br></div>",
 		"<div style='padding: 10px'>◆ /"+colorText("b",tmp.c.colorec,format(tmp.c.ecToVCEffects))+" to the first 5 effects on<br>Virtuous Crystals.<br></div>",
-		"<div style='padding: 10px'>◆ Unlock Evil Crystal upgrades.<br>(next update)</div>"
+		"<div style='padding: 10px'>◆ Unlock Evil Crystal upgrades.</div>",
+		"<div style='padding: 10px'>◆ +"+colorText("b",tmp.c.colorec,formatWhole(tmp.c.ecToEffectiveEC))+" effective Evil Crystals to the EC effects.<div style='color: rgb(167, 167, 167)'>(based on the amount of EC upgrades)</div></div>",
+		"<div style='padding: 10px'>◆ +"+colorText("b",tmp.c.colorec,format(tmp.c.ecToCostIncreaseExp))+" to the exponent on the 4th effect.</div>",
+		"<div style='padding: 10px'>◆ A quarter of the total EC also adds into the effective EC count.<div style='color: rgb(167, 167, 167)'>(You have "+colorText("b",tmp.c.colorec,formatWhole(player.c.totalec))+" total EC)</div></div>"
 	]
+	if(hasUpgrade("c",32)) effects[3] = "<div style='padding: 10px'>◆ +"+colorText("b",tmp.c.colorec,formatWhole(tmp.c.ecToCostIncrease))+" and ^"+format(tmp.c.crystalCostExp)+" to the cost of condensing Crystals.<br></div>"
+	if(hasMilestone("c",77)) effects[3] = "<div style='padding: 10px'>◆ +"+colorText("b",tmp.c.colorec,formatWhole(tmp.c.ecToCostIncrease))+" and ^"+colorText("b",tmp.c.colorec,format(tmp.c.crystalCostExp))+" to the cost of condensing Crystals.<br></div>"
+	if(player.c.ec.gte(1e4)) effects[3] = "<div style='padding: 10px'>◆ +"+colorText("b",tmp.c.colorec,formatWhole(tmp.c.ecToCostIncrease))+" (softcapped) and ^"+colorText("b",tmp.c.colorec,format(tmp.c.crystalCostExp))+" to the cost of condensing Crystals.<br></div>"
 	let effectText = ""
 	for (let index = start; index.lt(end); index = index.add(1))
 		effectText = effectText+effects[index]
@@ -260,24 +301,86 @@ function crystalEffectsInitializer(status) {
 }*/
 
 function crystalTypeDecider() {
-	if(player.c.vc.add(player.c.ec).eq(0)) {
+	if(player.c.vc.add(player.c.ec).eq(0)&&!(hasMilestone("c",45)||hasMilestone("c",75))) {
 		player.c.vc = player.c.vc.add(1)
 		return
 	}
-	if(player.c.ec.gte(50)&&player.c.vc.lt(50)) {
+	/*
+	if(player.c.ec.gte(50)&&player.c.vc.lt(50)&&!hasUpgrade("c",31)&&!hasUpgrade("c",11)) {
 		player.c.vc = player.c.vc.add(1)
 		return
 	}
-	if(player.c.vc.gte(50)&&player.c.ec.lt(50)) {
+	if(player.c.vc.gte(50)&&player.c.ec.lt(50)&&!hasUpgrade("c",31)&&!hasUpgrade("c",11)) {
 		player.c.ec = player.c.ec.add(1)
 		return
-	}
+	}*/
 	let rng = Math.floor(Math.random()*100)
-	if(rng >= 50) player.c.vc = player.c.vc.add(1)
-	else player.c.ec = player.c.ec.add(1)
+	let thshold = 50
+	if(hasUpgrade("c",21)) thshold = 101 // always gets ec
+	if(hasUpgrade("c",41)) thshold = -1 // always gets vcs
+	if(rng >= thshold) player.c.vc = player.c.vc.add(tmp.c.vcGain)
+	else player.c.ec = player.c.ec.add(tmp.c.ecGain)
+	return
+}
+
+function vcuCount() {
+	player.c.vcu = new Decimal(0)
+	if(hasUpgrade("c",11)) player.c.vcu = player.c.vcu.add(1)
+	if(hasUpgrade("c",12)) player.c.vcu = player.c.vcu.add(1)
+	if(hasUpgrade("c",13)) player.c.vcu = player.c.vcu.add(1)
+	if(hasUpgrade("c",14)) player.c.vcu = player.c.vcu.add(1)
+	if(hasUpgrade("c",21)) player.c.vcu = player.c.vcu.add(1)
+	if(hasUpgrade("c",22)) player.c.vcu = player.c.vcu.add(1)
+	if(hasUpgrade("c",23)) player.c.vcu = player.c.vcu.add(1)
+	if(hasUpgrade("c",24)) player.c.vcu = player.c.vcu.add(1)
+	return
+}
+
+function ecuCount() {
+	player.c.ecu = new Decimal(0)
+	if(hasUpgrade("c",31)) player.c.ecu = player.c.ecu.add(1)
+	if(hasUpgrade("c",32)) player.c.ecu = player.c.ecu.add(1)
+	if(hasUpgrade("c",33)) player.c.ecu = player.c.ecu.add(1)
+	if(hasUpgrade("c",34)) player.c.ecu = player.c.ecu.add(1)
+	if(hasUpgrade("c",41)) player.c.ecu = player.c.ecu.add(1)
+	if(hasUpgrade("c",42)) player.c.ecu = player.c.ecu.add(1)
+	if(hasUpgrade("c",43)) player.c.ecu = player.c.ecu.add(1)
+	if(hasUpgrade("c",44)) player.c.ecu = player.c.ecu.add(1)
+	return
+}
+
+function totalVCCalc() {
+	player.c.totalvc = player.c.vc
+	if(hasUpgrade("c",11)) player.c.totalvc = player.c.totalvc.add(50)
+	if(hasUpgrade("c",12)) player.c.totalvc = player.c.totalvc.add(100)
+	if(hasUpgrade("c",13)) player.c.totalvc = player.c.totalvc.add(1000)
+	if(hasUpgrade("c",14)) player.c.totalvc = player.c.totalvc.add(1e4)
+	if(hasUpgrade("c",21)) player.c.totalvc = player.c.totalvc.add(1e9)
+	if(hasUpgrade("c",22)) player.c.totalvc = player.c.totalvc.add(0)
+	if(hasUpgrade("c",23)) player.c.totalvc = player.c.totalvc.add(0)
+	if(hasUpgrade("c",24)) player.c.totalvc = player.c.totalvc.add(0)
+	if(hasUpgrade("c",53)) player.c.totalvc = player.c.totalvc.add(50000)
+	return
+}
+
+function totalECCalc() {
+	player.c.totalec = player.c.ec
+	if(hasUpgrade("c",31)) player.c.totalec = player.c.totalec.add(50)
+	if(hasUpgrade("c",32)) player.c.totalec = player.c.totalec.add(100)
+	if(hasUpgrade("c",33)) player.c.totalec = player.c.totalec.add(1200)
+	if(hasUpgrade("c",34)) player.c.totalec = player.c.totalec.add(1e4)
+	if(hasUpgrade("c",41)) player.c.totalec = player.c.totalec.add(1e9)
+	if(hasUpgrade("c",42)) player.c.totalec = player.c.totalec.add(0)
+	if(hasUpgrade("c",43)) player.c.totalec = player.c.totalec.add(0)
+	if(hasUpgrade("c",44)) player.c.totalec = player.c.totalec.add(0)
+	if(hasUpgrade("c",53)) player.c.totalec = player.c.totalec.add(50000)
 	return
 }
 /*
+function filter(list, keep){ // copied from incrementreeverse
+    return list.filter(x => keep.includes(x))
+}
+
 let best = new Decimal(0)
 function bestPoints() {
 	best = best.max(tmp.points)
@@ -297,29 +400,7 @@ function addedPlayerData() { return {
 	
 }}
 
-// Display extra things at the top of the page
-var displayThings = [
-	function() {
-		//let num = new Decimal("1f5")
-		let vc = "Virtuous Crystals"
-		let ec = "Evil Crystals"
-		let vcColored = colorText("b",tmp.c.colorvc,vc)
-		let ecColored = colorText("b",tmp.c.colorec,ec)
-		return "Current Endgame:<br>Have both 50 "+vcColored+" and "+ecColored+"."
-		//return num	
-	}
-]
-
-// Determines when the game "ends"
-function isEndgame() {
-	//return player.points.gte(new Decimal("ee280000000"))
-	return (hasMilestone("c",45)&hasMilestone("c",75))
-}
-
-
-
 // Less important things beyond this point!
-
 // Style for the background, can be a function
 var backgroundStyle = {
 
