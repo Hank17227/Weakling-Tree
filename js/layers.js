@@ -406,26 +406,26 @@ addLayer("w", {
             effectDisplay() {
                 return "/"+format(this.effect())
             },
-            unlocked() {return (hasUpgrade("c",31))}
+            unlocked() {return (hasUpgrade("w",31))}
         },
         33: {
             title: "Alleviate II",
             description: "Decrease the base division exponent of Weakling Dust effect.<br>(^0.4 → ^0.25)",
             cost: new Decimal(1e40),
-            unlocked() {return (hasUpgrade("c",32))}
+            unlocked() {return (hasUpgrade("w",32))}
         },
         34: {
             title: "Powerful Weakling II",
             description: "Delays the softcap of <b>Powerful Weakling</b>.<br>(softcap start: "+format(1e4)+" -> "+format(1e9)+")",
             cost: new Decimal(1e51),
-            unlocked() {return (hasUpgrade("c",33))}
+            unlocked() {return (hasUpgrade("w",33))}
         },
         35: {
             title: "Duality",
             description: "Enhances the effect of <b>Benediction</b> and <b>Imprecation</b> to twice of their original amount.",
             tooltip: "You can rest for a while after this upgrade~",
             cost: new Decimal(1e57),
-            unlocked() {return (hasUpgrade("c",34))}
+            unlocked() {return (hasUpgrade("w",34))}
         },
     }
 }) // Weaklings
@@ -911,7 +911,7 @@ addLayer("c", {
 
     resetsNothing() {return hasUpgrade("c",54)},
 
-    canReset() {return !hasUpgrade("c",55)},
+    canReset() {return (!hasUpgrade("c",55)&&player.w.points.gte(2e10))},
     
     milestones: {
         0: {

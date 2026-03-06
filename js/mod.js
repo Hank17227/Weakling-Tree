@@ -12,11 +12,15 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.8",
+	num: "0.8.1",
 	name: "A Completed Crystal",
 }
 
 let changelog = `<h1>Changelog:</h1><br><br>
+	<h3>v0.8.1 - 2026/3/6</h3><br>
+		<b>A Small Hotfix</b><br>
+		Fixed the state of button on Crystal Shards<br>
+		Fixed the requirement for row 3 weakling upgrades<br><br>
 	<h3>v0.8 - 2026/3/5</h3><br>
 		<b style='color: rgb(209, 31, 31)'>A Completed Crystal</b><br>
 		Finished the making of Crystal layer! (I am very proud)<br>
@@ -317,7 +321,7 @@ function crystalTypeDecider() {
 	let rng = Math.floor(Math.random()*100)
 	let thshold = 50
 	if(hasUpgrade("c",21)) thshold = 101 // always gets ec
-	if(hasUpgrade("c",41)) thshold = -1 // always gets vcs
+	if(hasUpgrade("c",41)) thshold = -1 // always gets vc
 	if(rng >= thshold) player.c.vc = player.c.vc.add(tmp.c.vcGain)
 	else player.c.ec = player.c.ec.add(tmp.c.ecGain)
 	return
