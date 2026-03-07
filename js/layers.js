@@ -23,8 +23,8 @@ addLayer("w", {
             constant: new Decimal(10),
             factor: new Decimal(5),
             offset: new Decimal(0),
-            scaleStart: [new Decimal(10)],
-            scaledFactor: [new Decimal(15)],
+            scaleStart: [new Decimal(10), new Decimal(50)],
+            scaledFactor: [new Decimal(15), new Decimal(7500)],
             buyCount: new Decimal(0),
             injected: false, // filter to the totalBuysWithScaling so that it doesn't mess up the calc with set buyCount value
             bought: new Decimal(0),
@@ -37,7 +37,7 @@ addLayer("w", {
             factor: new Decimal(3),
             offset: new Decimal(0),
             scaleStart: [new Decimal(12), new Decimal(24), new Decimal(81)],
-            scaledFactor: [new Decimal(6), new Decimal(12), new Decimal(120)],
+            scaledFactor: [new Decimal(6), new Decimal(12), new Decimal(2400)],
             buyCount: new Decimal(0),
             injected: false, // filter to the totalBuysWithScaling so that it doesn't mess up the calc with set buyCount value
             bought: new Decimal(0),
@@ -108,10 +108,11 @@ addLayer("w", {
         gain = gain.times(hasMilestone("c",0)?3:1)
         gain = gain.div(player.c.ude)
         gain = gain.times(hasMilestone("c",2)?tmp.c.mwConvert:1)
-        gain = gain.times(hasMilestone("c",4)?3:1)
-        gain = gain.times(hasMilestone("c",6)?tmp.c.crystalsToWeakling:1)
+        gain = gain.times(hasMilestone("c",4)?tmp.c.crystalsToWeakling:1)
+        gain = gain.times(hasMilestone("c",5)?3:1)
         gain = gain.times(hasMilestone("c",44)?tmp.c.vcToWeakling:1)
         if(hasUpgrade(this.layer,31)) gain = gain.pow(1.2)
+        if(inChallenge("a",11)) gain = new Decimal(0)
         return gain
     },
     gainMult() { // Calculate the multiplier for main currency from bonuses
@@ -131,6 +132,8 @@ addLayer("w", {
     doReset(resettingLayer) {
         let keep = []
         if(hasMilestone("c",41) && resettingLayer=="c") keep.push("upgrades")
+        if(hasMilestone("a",0) && resettingLayer=="a") keep.push("upgrades")
+        if(hasMilestone("dm",0) && resettingLayer=="dm") keep.push("upgrades")
         if(layers[resettingLayer].row > this.row) layerDataReset(this.layer,keep)
     },
 
@@ -140,7 +143,8 @@ addLayer("w", {
         let weakling = player[this.layer].points
         if(hasUpgrade(this.layer,13)) exponent = 0.4
         if(hasUpgrade(this.layer,33)) exponent = 0.25
-        if(weakling.gt(0)) eff = Decimal.max(weakling.pow(exponent).add(1),1)
+        if(inChallenge("dm",11)) exponent = 2
+        eff = Decimal.max(weakling.pow(exponent).add(1),1)
         if(hasMilestone("c",20)) eff = eff.div(tmp.c.udNerfWeaklingEffect)
         if(hasMilestone("c",72)) eff = eff.mul(tmp.c.ecToWeaklingEffect)
         return eff
@@ -170,13 +174,15 @@ addLayer("w", {
             },
             cost(x) {
                 let base = this.baseCost()
-                let scale = [new Decimal(5), new Decimal(15)]
+                let scale = [new Decimal(5), new Decimal(15), new Decimal(7500)]
                 let scaledCost = [
                     base.mul(scale[0].pow(x)),
-                    base.mul(scale[0].pow(9)).mul(scale[1].pow(x.sub(9)))
+                    base.mul(scale[0].pow(9)).mul(scale[1].pow(x.sub(9))),
+                    base.mul(scale[0].pow(9)).mul(scale[1].pow(40)).mul(scale[2].pow(x.sub(49)))
                 ]
                 let consume = scaledCost[0]
-                if(x.gte(10)) consume = scaledCost[1]
+                if(x.gte(10)&&x.lt(50)) consume = scaledCost[1]
+                if(x.gte(50)) consume = scaledCost[2]
                 return consume
             },
             effect(x) {
@@ -214,7 +220,7 @@ addLayer("w", {
             },
             cost(x) {
                 let base = this.baseCost()
-                let scale = [new Decimal(3), new Decimal(6), new Decimal(12), new Decimal(120)]
+                let scale = [new Decimal(3), new Decimal(6), new Decimal(12), new Decimal(2400)]
                 let scaledCost = [
                     base.mul(scale[0].pow(x)),
                     base.mul(scale[0].pow(11)).mul(scale[1].pow(x.sub(11))),
@@ -262,6 +268,7 @@ addLayer("w", {
             description: "Triple Weakling Dust gain.",
             cost: new Decimal(20),
             unlocked() {
+                if(inChallenge("dm",11)) return (player.c.ud.gt(0))
                 if(hasMilestone("c",41)) return true
                 return (player[this.layer].buyables[12].gte(2))
             }
@@ -689,6 +696,7 @@ addLayer("c", {
         let eff = tmp.c.udBaseEffect
         if(hasUpgrade("c",51)) eff = eff.pow(0.9)
         if(hasUpgrade("w",32)) eff = eff.div(upgradeEffect("w",32))
+        if(hasChallenge("dm",11)) eff = eff.pow(challengeEffect("dm",11))
         return eff
     },
 
@@ -720,12 +728,13 @@ addLayer("c", {
     },
 
     udNerfWeaklingEffect() {
-        let mult = player.c.ud.pow(0.2).mul(3.3).add(1)
+        let mult = player.c.ud.max(0).pow(0.2).mul(3.3).add(1)
+        if(inChallenge("dm",11)) mult = new Decimal(1)
         return mult
     },
 
     udNerfWSCost() {
-        let mult = player.c.ud.pow(0.1).add(1)
+        let mult = player.c.ud.max(0).pow(0.1).add(1)
         return mult
     },
 
@@ -797,6 +806,7 @@ addLayer("c", {
         let mult = effectiveVC.sub(1).max(0).pow(1.2).div(3).add(1).max(1)
         if(hasMilestone("c",74)) mult = mult.div(tmp.c.ecToVCEffects).max(1)
         if(hasMilestone("c",47)) mult = mult.mul(tmp.c.vcEff4Eff5Enhance)
+        if(inChallenge("dm",11)) mult = new Decimal(1)
         return mult
     },
 
@@ -806,6 +816,7 @@ addLayer("c", {
         let mult = effectiveVC.sub(10).max(0).pow(1.5).div(7.5).add(1).max(1)
         if(hasMilestone("c",74)) mult = mult.div(tmp.c.ecToVCEffects).max(1)
         if(hasMilestone("c",47)) mult = mult.mul(tmp.c.vcEff4Eff5Enhance)
+        if(inChallenge("dm",11)) mult = new Decimal(1)
         return mult
     },
 
@@ -824,6 +835,7 @@ addLayer("c", {
         let effectiveVC = player.c.vc
         if(hasMilestone("c",46)) effectiveVC = effectiveVC.add(tmp.c.vcToEffectiveVC)
         let mult = effectiveVC.pow(0.15)
+        if(inChallenge("dm",11)) mult = new Decimal(1)
         return mult
     },
 
@@ -842,20 +854,21 @@ addLayer("c", {
         return mult
     },
 
-    ecToCostIncrease() { // Effect 3
+    ecToWeaklingEffect() { // Effect 3
+        let effectiveEC = player.c.ec
+        if(hasMilestone("c",76)) effectiveEC = effectiveEC.add(tmp.c.ecToEffectiveEC)
+        let mult = effectiveEC.sub(1).max(0).pow(0.9).div(0.6666).add(1.404)
+        if(inChallenge("a",11)) mult = new Decimal(1)
+        return mult
+    },
+
+    ecToCostIncrease() { // Effect 4
         let effectiveEC = player.c.ec
         if(hasMilestone("c",76)) effectiveEC = effectiveEC.add(tmp.c.ecToEffectiveEC)
         let addCost = effectiveEC.sub(24).max(0)
         let sftcap = 10000
         if(effectiveEC.gte(sftcap)) addCost = addCost.div(sftcap).pow(2/3).mul(sftcap)
         return addCost
-    },
-
-    ecToWeaklingEffect() { // Effect 4
-        let effectiveEC = player.c.ec
-        if(hasMilestone("c",76)) effectiveEC = effectiveEC.add(tmp.c.ecToEffectiveEC)
-        let mult = effectiveEC.sub(1).max(0).pow(0.9).div(0.6666).add(1.404)
-        return mult
     },
 
     ecToVCEffects() { // Effect 5
@@ -938,25 +951,25 @@ addLayer("c", {
             done() {return player.c.points.gte(4)},
         },
         4: {
+            requirementDescription: "5 Crystal Shards",
+            effectDescription() {
+                return "Boosts Mentality and Weakling Dusts based on Crystal Shards.<br>"+
+                "Currently: ×"+format(tmp.c.crystalsToMentality)+" to Mentality, ×"+format(tmp.c.crystalsToWeakling)+" to Weakling Dust."
+            },
+            done() {return player.c.points.gte(5)},
+        },
+        5: {
             requirementDescription: "7 Crystal Shards",
             effectDescription: "Triples Weakling Dust gain, again.",
             done() {return player.c.points.gte(7)},
         },
-        5: {
+        6: {
             requirementDescription: "10 Crystal Shards",
             effectDescription() {
                 return "Boosts Mentality based on Weakling Dusts.<br>"+
                 "Currently: ×"+format(tmp.c.wmConvert)+"."
             },
             done() {return player.c.points.gte(10)},
-        },
-        6: {
-            requirementDescription: "15 Crystal Shards",
-            effectDescription() {
-                return "Boosts Mentality and Weakling Dusts based on Crystal Shards.<br>"+
-                "Currently: ×"+format(tmp.c.crystalsToMentality)+" to Mentality, ×"+format(tmp.c.crystalsToWeakling)+" to Weakling Dust."
-            },
-            done() {return player.c.points.gte(15)},
         },
         7: {
             requirementDescription: "20 Crystal Shards",
@@ -1621,6 +1634,182 @@ addLayer("c", {
     }
 })
 
+addLayer("a", {
+    tabFormat: {
+        Challenges: {
+            content: [
+                ["display-text", function() {
+                    unlockReq = "Next challenge unlocks at <h2>1.00e100</h2> Unstable Dust.<br><br>"
+                    return unlockReq
+                }],
+                "challenges","blank","blank",
+                "milestones"
+            ]
+        },
+        Purification: {
+            content: [
+                ["display-text", "Coming Soon<br>(:", {'font-size':'180px'}]
+            ],
+            unlocked() {return hasChallenge("a",11)}
+        }
+    },
+    name: "Angelic", // This is optional, only used in a few places, If absent it just uses the layer id.
+    symbol: "A", // This appears on the layer's node. Default is the id with the first letter capitalized
+    position: -1, // Horizontal position within a row. By default it uses the layer id and sorts in alphabetical order
+    branches: ["c"],
+    infoboxes: {
+        introBox: {
+            title: "",
+            body() {
+                return ""
+            }
+        }
+    },
+    startData() { return {
+        unlocked: false,
+		points: new Decimal(0),
+        challengeCompletion: 0
+    }},
+    color: "rgb(252, 244, 132)",
+    requires: new Decimal(5e14), // Can be a function that takes requirement increases into account
+    resource: "Angelic Particles", // Name of prestige currency
+    resourceSingular: "Angelic Particle",
+    baseResource: "Virtuous Crystals", // Name of resource prestige is based on
+    baseAmount() {return player.c.vc}, // Get the current amount of baseResource
+    type: "normal", // normal: cost to gain currency depends on amount gained. static: cost depends on how much you already have
+    exponent: 0, // Prestige currency exponent
+    update(diff) {
+        if(!player.a.unlocked) tmp.a.instantUnlockLayer
+        tmp.a.challengeCount
+    },
+    row: 1, // Row the layer is in on the tree (0 is the first row)
+    layerShown(){return hasMilestone("c",26)},
+    doReset(resettingLayer) {
+
+    },
+    instantUnlockLayer() {
+        if(player.c.vc.gte(5e14)) player.a.unlocked = true
+        return
+    },
+
+    challengeCount() {
+        player.a.challengeCompletion = challengeCompletions("a",11)//+challengeCompletions("a",12)+challengeCompletions("a",21)+challengeCompletions("a",22)
+        return
+    },
+
+    challenges: {
+        11: {
+            name: "Weakling Nullifier",
+            challengeDescription: "Disable the gain of Weakling Dust, the 4th EC effect does nothing.",
+            goalDescription: "Reach 1.2e34 Mentality.",
+            rewardDescription: "Unlocks Virtuous Crystal Purification. Mentality gain ^1.1.",
+            canComplete: function() {return player.points.gte(1.2e34)},
+            rewardEffect: 1.1
+        }
+    },
+
+    milestones: {
+        0: {
+            requirementDescription: "1 Challenge Completion",
+            effectDescription: "Weakling upgrades are no longer reset when entering/exiting challenges.",
+            done() {return player.dm.challengeCompletion >= 1}
+        }
+    }
+})
+
+addLayer("dm", {
+    tabFormat: {
+        Challenges: {
+            content: [
+                ["display-text", function() {
+                    unlockReq = "Next challenge unlocks at <h2>1.00e100</h2> Unstable Dust.<br><br>"
+                    return unlockReq
+                }],
+                "challenges","blank","blank",
+                "milestones"
+            ]
+        },
+        Purification: {
+            content: [
+                ["display-text", "Coming Soon<br>(:", {'font-size':'180px'}]
+            ],
+            unlocked() {return hasChallenge("dm",11)}
+        }
+    },
+    name: "Demonic", // This is optional, only used in a few places, If absent it just uses the layer id.
+    symbol: "D", // This appears on the layer's node. Default is the id with the first letter capitalized
+    position: 1, // Horizontal position within a row. By default it uses the layer id and sorts in alphabetical order
+    branches: ["c"],
+    infoboxes: {
+        introBox: {
+            title: "",
+            body() {
+                return ""
+            }
+        }
+    },
+    startData() { return {
+        unlocked: false,
+		points: new Decimal(0),
+        challengeCompletion: 0
+    }},
+    color: "rgb(168, 26, 69)",
+    requires: new Decimal(1e15), // Can be a function that takes requirement increases into account
+    resource: "Demonic Particles", // Name of prestige currency
+    resourceSingular: "Demonic Particle",
+    baseResource: "Evil Crystals", // Name of resource prestige is based on
+    baseAmount() {return player.c.ec}, // Get the current amount of baseResource
+    type: "normal", // normal: cost to gain currency depends on amount gained. static: cost depends on how much you already have
+    exponent: 0, // Prestige currency exponent
+    update(diff) {
+        if(!player.dm.unlocked) tmp.dm.instantUnlockLayer
+        tmp.dm.challengeCount
+    },
+    row: 1, // Row the layer is in on the tree (0 is the first row)
+    layerShown(){return hasMilestone("c",26)},
+    doReset(resettingLayer) {
+
+    },
+
+    instantUnlockLayer() {
+        if(player.c.ec.gte(1e15)) player.dm.unlocked = true
+        return
+    },
+
+    challengeCount() {
+        player.dm.challengeCompletion = challengeCompletions("dm",11)//+challengeCompletions("dm",12)+challengeCompletions("dm",21)+challengeCompletions("dm",22)
+        return
+    },
+
+    challenges: {
+        11: {
+            name: "Weakling Amplifier",
+            challengeDescription: "Weakling Dust effect is now ^2. The 4th, 5th, 8th VC effects, and 1st UD milestone are disabled.",
+            goalDescription: "Reach 1e11 Weakling Dust.",
+            rewardDescription: "Unlocks Evil Crystal Purification. The first UD Effect is further reduced to ^0.7.",
+            canComplete: function() {return player.w.points.gte(1e11)},
+            rewardEffect: 0.7
+        },
+        12: {
+            name: "???",
+            challengeDescription: "???",
+            goalDescription: "Reach 9e99 Mentality",
+            rewardDescription: "???",
+            canComplete: function() {return player.points.gte(9e99)},
+            unlocked() {return player.c.ud.gte(1e150)}
+            //rewardEffect: 0.7
+        },
+    },
+
+    milestones: {
+        0: {
+            requirementDescription: "1 Challenge Completion",
+            effectDescription: "Weakling upgrades are no longer reset when entering/exiting challenges.",
+            done() {return player.dm.challengeCompletion >= 1}
+        }
+    }
+})
+
 addLayer("d", {
     name: "Dev Zone", // This is optional, only used in a few places, If absent it just uses the layer id.
     symbol: "D", // This appears on the layer's node. Default is the id with the first letter capitalized
@@ -1653,7 +1842,7 @@ addLayer("d", {
             "blank",
             ["display-text",function() {
                 return "Currently, the test value is:"+
-                "<br><h1 style=\"color: rgb(62, 194, 211);\"> "+format(upgradeEffect("c",41))+" </h1>"
+                "<br><h1 style=\"color: rgb(62, 194, 211);\"> "+format(player.dm.challengeCompletion)+" </h1>"
             }],
             "blank",
             "milestones"

@@ -12,11 +12,15 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.8.1",
-	name: "A Completed Crystal",
+	num: "0.8.2",
+	name: "Challenges Era",
 }
 
 let changelog = `<h1>Changelog:</h1><br><br>
+	<h3>v0.8.2 - 2026/3/7</h3><br>
+		<b>Challenges Era</b><br>
+		Added Angelic & Demonic layer as well as their own unique challenges!<br>
+		Swapped the order of some Crystal Shards milestones (smoother gameplay experience!)<br><br>
 	<h3>v0.8.1 - 2026/3/6</h3><br>
 		<b>A Small Hotfix</b><br>
 		Fixed the state of button on Crystal Shards<br>
@@ -67,7 +71,7 @@ let winText = `Congratulations! You have endured the mental challenge the game h
 var displayThings = [
 	function() {
 		//let num = new Decimal("1f5")
-		return "Current Endgame: Reach <b style='text-shadow: 0px 0px 10px'>1.00e70</b> Unstable Dust."
+		return "Current Endgame: Try to find it out yourself :)"
 		//return num	
 	}
 ]
@@ -75,7 +79,7 @@ var displayThings = [
 // Determines when the game "ends"
 function isEndgame() {
 	//return player.points.gte(new Decimal("ee280000000"))
-	return (hasMilestone("c",26))
+	return (hasMilestone("a",0)&&hasMilestone("dm",0))
 }
 
 
@@ -97,24 +101,27 @@ function getPointGen() {
 	if(!canGenPoints())
 		return new Decimal(0)
 
-	let gain = new Decimal(0.05)
+	let initialGain = new Decimal(0.05)
+	if(inChallenge("dm",11)) initialGain = new Decimal(1)
+	let gain = initialGain
 	gain = gain.mul(buyableEffect("w",11))
-	if(player["w"].points.gt(0)) gain = gain.div(tmp.w.effect)
+	if(player.w.unlocked) gain = gain.div(tmp.w.effect)
 	if(hasUpgrade("w",14)) gain = gain.mul(5)
 	if(hasUpgrade("w",15)) gain = gain.mul(upgradeEffect("w",15))
 	if(hasUpgrade("w",23)) gain = gain.mul(upgradeEffect("w",23))
 	if(hasMilestone("c",1)) gain = gain.mul(4)
 	if(hasMilestone("c",3)) gain = gain.mul(3)
-	if(hasMilestone("c",5)) gain = gain.mul(tmp.c.wmConvert)
-	if(hasMilestone("c",6)) gain = gain.mul(tmp.c.crystalsToMentality)
+	if(hasMilestone("c",4)) gain = gain.mul(tmp.c.crystalsToMentality)
+	if(hasMilestone("c",6)) gain = gain.mul(tmp.c.wmConvert)
 	if(hasMilestone("c",22) & player.c.ud.gte(1e6)) gain = gain.div(player.c.ude.pow(0.4))
 	if(hasMilestone("c",43)) gain = gain.mul(tmp.c.vcToMentality)
+	if(hasChallenge("a",11)) gain = gain.pow(challengeEffect("a",11))
 	
 	/* softcap1: 1e7 Mentality gain (not so useful for now tbh)
 	let sftcap1 = new Decimal(1e7)
 	if(player.points.gte(sftcap1)) gain = gain.div(sftcap1).pow(0.5).mul(sftcap1)*/
 	
-	gain = (player.points.gte(1)?gain:Decimal.max(gain,0.05))
+	gain = (player.points.gte(1)?gain:Decimal.max(gain,initialGain))
 	return gain
 }
 
@@ -188,8 +195,8 @@ function totalBuysWithScaling(buyableStatus) { // 3rd layer of function that acc
 }
 
 function MSInitialize(buyableStatus) {
-	buyableStatus.scaleStart = [new Decimal(10)]
-	buyableStatus.scaledFactor = [new Decimal(15)]
+	buyableStatus.scaleStart = [new Decimal(10), new Decimal(50)]
+	buyableStatus.scaledFactor = [new Decimal(15), new Decimal(7500)]
 	buyableStatus.points = player.points
 	buyableStatus.base = tmp.w.buyables[11].baseCost
 	buyableStatus.constant = tmp.w.buyables[11].baseCost
@@ -204,7 +211,7 @@ function MSInitialize(buyableStatus) {
 
 function WSInitialize(buyableStatus) {
 	buyableStatus.scaleStart = [new Decimal(12), new Decimal(24), new Decimal(81)]
-	buyableStatus.scaledFactor = [new Decimal(6), new Decimal(12), new Decimal(120)]
+	buyableStatus.scaledFactor = [new Decimal(6), new Decimal(12), new Decimal(2400)]
 	buyableStatus.points = player.w.points
 	buyableStatus.base = tmp.w.buyables[12].baseCost
 	buyableStatus.constant = tmp.w.buyables[12].baseCost
