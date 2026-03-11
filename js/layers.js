@@ -215,7 +215,7 @@ addLayer("w", {
                 if (hasUpgrade("c",14)) gainDesc = "×"+format(baseGain.add(upgradeEffect("c",14)))+" Mentality gain!<br>"
                 return gainDesc+
                 "Currently: "+format(this.effect())+"×\n\n"+
-                "Cost: "+format(this.cost())+" Points"
+                "Cost: "+format(this.cost())+" Mentality"
             }
         },
         12: {
