@@ -1661,7 +1661,7 @@ addLayer("c", {
             title: "Distillation",
             description: "Gain 50% of Crystal Shards on reset. Adds an effect to Crystal Shard.",
             tooltip: "This will also disable the prestige button of Crystal Shards.",
-            cost: new Decimal(1e16),
+            cost: new Decimal(1e15),
             style: {"background"() {
                 let color1 = "rgb(209, 31, 31)"
                 let color2 = "rgb(191, 143, 143)"
