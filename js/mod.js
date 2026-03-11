@@ -75,7 +75,7 @@ let winText = `Congratulations! You have endured the mental challenge the game h
 var displayThings = [
 	function() {
 		//let num = new Decimal("1f5")
-		//return "Current Endgame: Try to find it out yourself :)"
+		return "Current Endgame: Try to find it out yourself :)"
 		//return num	
 	}
 ]
@@ -83,7 +83,7 @@ var displayThings = [
 // Determines when the game "ends"
 function isEndgame() {
 	//return player.points.gte(new Decimal("ee280000000"))
-	//return (hasMilestone("a",0)&&hasMilestone("dm",0))
+	return (player.c.ud.gte("1e240"))
 }
 
 
