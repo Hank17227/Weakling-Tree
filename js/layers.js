@@ -15,7 +15,7 @@ addLayer("w", {
     symbol: "W", // This appears on the layer's node. Default is the id with the first letter capitalized
     position: 0, // Horizontal position within a row. By default it uses the layer id and sorts in alphabetical order
     startData() { return {
-        unlocked: true,
+        unlocked: false,
 		points: new Decimal(0),
         MSStatus: { // Stats for Mentality Strengthen Cost Calculation
             points: new Decimal(0),
@@ -100,23 +100,23 @@ addLayer("w", {
     exponent: 0, // Prestige currency exponent
     passiveGeneration() {
         let gain = new Decimal(0.1)
-        gain = gain.times(tmp[this.layer].buyables[12].effect)
-        gain = gain.times(hasUpgrade(this.layer,11)?3:1)
-        gain = gain.times(hasUpgrade(this.layer,12)?4:1)
-        gain = gain.times(hasUpgrade(this.layer,21)?upgradeEffect(this.layer,21):1)
-        gain = gain.times(hasUpgrade(this.layer,24)?upgradeEffect(this.layer,24):1)
-        gain = gain.times(hasMilestone("c",0)?3:1)
-        gain = gain.div(player.c.ude)
-        gain = gain.times(hasMilestone("c",2)?tmp.c.mwConvert:1)
-        gain = gain.times(hasMilestone("c",4)?tmp.c.crystalsToWeakling:1)
-        gain = gain.times(hasMilestone("c",5)?3:1)
-        gain = gain.times(hasMilestone("c",44)?tmp.c.vcToWeakling:1)
-        if(hasUpgrade(this.layer,31)) gain = gain.pow(1.2)
         if(inChallenge("a",11)) gain = new Decimal(0)
         return gain
     },
     gainMult() { // Calculate the multiplier for main currency from bonuses
-        mult = new Decimal(1)
+        let mult = new Decimal(1)
+        mult = mult.mul(tmp.w.buyables[12].effect)
+        mult = mult.times(hasUpgrade(this.layer,11)?3:1)
+        mult = mult.times(hasUpgrade(this.layer,12)?4:1)
+        mult = mult.times(hasUpgrade(this.layer,21)?upgradeEffect(this.layer,21):1)
+        mult = mult.times(hasUpgrade(this.layer,24)?upgradeEffect(this.layer,24):1)
+        mult = mult.times(hasMilestone("c",0)?3:1)
+        mult = mult.div(player.c.ude)
+        mult = mult.times(hasMilestone("c",2)?tmp.c.mwConvert:1)
+        mult = mult.times(hasMilestone("c",4)?tmp.c.crystalsToWeakling:1)
+        mult = mult.times(hasMilestone("c",5)?3:1)
+        mult = mult.times(hasMilestone("c",44)?tmp.c.vcToWeakling:1)
+        if(hasUpgrade(this.layer,31)) mult = mult.pow(1.2)
         if(hasUpgrade("c",55)) mult = mult.mul(tmp.c.effect)
         return mult
     },
@@ -135,6 +135,13 @@ addLayer("w", {
         if(hasMilestone("a",0) && resettingLayer=="a") keep.push("upgrades")
         if(hasMilestone("dm",0) && resettingLayer=="dm") keep.push("upgrades")
         if(layers[resettingLayer].row > this.row) layerDataReset(this.layer,keep)
+    },
+
+    canReset: false,
+
+    instantUnlockLayer() {
+        if(player.points.gte(1)) player.w.unlocked = true
+        return
     },
 
     effect() {
@@ -161,7 +168,7 @@ addLayer("w", {
     },
 
     update() {
-        player.devSpeed = new Decimal(1)
+        if(!player.w.unlocked) tmp.w.instantUnlockLayer
     },
 
     buyables: {
@@ -236,7 +243,7 @@ addLayer("w", {
             effect(x) {
                 let eff = new Decimal(1)
                 let base = new Decimal(2)
-                if(x.gte(0)) eff = Decimal.pow(base,x)
+                if(x.gte(0)) eff = Decimal.pow(base,x).round()
                 if(hasUpgrade("c",34)) eff = base.add(upgradeEffect("c",34)).pow(x)
                 return eff
             },
@@ -443,12 +450,13 @@ addLayer("c", {
             content:[
             ["display-text", function() {
                 let mainText = "You have "+layerText("h2","c",formatWhole(player.c.points))+" Crystal Shards<br><br>"
-                if(hasUpgrade("c",55)) mainText = "You have "+layerText("h2","c",formatWhole(player.c.points))+" Crystal Shards, which increase the base of Weakling Dust by "+layerText("h2","c",formatWhole(tmp.c.effect))+".<br>"
+                if(hasUpgrade("c",55)) mainText = "You have "+layerText("h2","c",formatWhole(player.c.points))+" Crystal Shards, which multiplies the base of Weakling Dust by "+layerText("h2","c",formatWhole(tmp.c.effect))+".<br>"
                 return mainText
             }],
             ["display-text", function() {
                 let gainText = ""
                 let csBaseGain = player.w.points.div(2e10).pow(0.07)
+                if(inChallenge("a",12)||inChallenge("dm",12)) csBaseGain = player.w.points.div(2e10).pow(0.035)
                 if(hasUpgrade("c",55)) gainText = "You are gaining "+colorText("b",tmp.c.color,format(csBaseGain.mul(tmp.c.gainMult).div(2)))+" Crystal Shards per second.<br><br>"
                 return gainText
             }],
@@ -462,8 +470,9 @@ addLayer("c", {
             }],
             ["blank","10px"],
             ["display-text", function() {
+                let wdBase = (player.w.points.gt(0)?1:0)
                 return "You have <b style='color: "+tmp.w.color+"; text-shadow:0px 0px 10px;'>"+format(player.w.points)+"</b> Weakling Dust."+
-                " (+"+format(tmp.w.passiveGeneration.mul(tmp.w.gainMult))+"/s)"
+                " (+"+format(tmp.w.passiveGeneration.mul(tmp.w.gainMult).mul(wdBase))+"/s)"
             }],
             "blank",
             ["microtabs","goals"]
@@ -474,12 +483,13 @@ addLayer("c", {
             content: [["infobox","introBox"],
             ["display-text", function() {
                 let mainText = "You have "+layerText("h2","c",formatWhole(player.c.points))+" Crystal Shards<br><br>"
-                if(hasUpgrade("c",55)) mainText = "You have "+layerText("h2","c",formatWhole(player.c.points))+" Crystal Shards, which increase the base of Weakling Dust by "+layerText("h2","c",formatWhole(tmp.c.effect))+".<br>"
+                if(hasUpgrade("c",55)) mainText = "You have "+layerText("h2","c",formatWhole(player.c.points))+" Crystal Shards, which multiplies the base of Weakling Dust by "+layerText("h2","c",formatWhole(tmp.c.effect))+".<br>"
                 return mainText
             }],
             ["display-text", function() {
                 let gainText = ""
                 let csBaseGain = player.w.points.div(2e10).pow(0.07)
+                if(inChallenge("a",12)||inChallenge("dm",12)) csBaseGain = player.w.points.div(2e10).pow(0.035)
                 if(hasUpgrade("c",55)) gainText = "You are gaining "+colorText("b",tmp.c.color,format(csBaseGain.mul(tmp.c.gainMult).div(2)))+" Crystal Shards per second.<br><br>"
                 return gainText
             }],
@@ -659,22 +669,27 @@ addLayer("c", {
     baseResource: "Weakling Dust", // Name of resource prestige is based on
     baseAmount() {return player.w.points}, // Get the current amount of baseResource
     type: "normal", // normal: cost to gain currency depends on amount gained. static: cost depends on how much you already have
-    exponent: 0.07, // Prestige currency exponent
+    exponent() {
+        if(inChallenge("a",12)||inChallenge("dm",12)) return 0.035
+        return 0.07
+    }, // Prestige currency exponent
 
     effect() {
-        let eff = player.c.points.div(1e11).max(1).pow(0.25).div(1.6).max(1)
+        let eff = player.c.points.div(1e11).max(1).pow(0.25).div(1.6).add(1).max(1)
+        if(hasUpgrade("c",61)) eff = eff.pow(upgradeEffect("c",61))
         return eff.floor()
     },
 
     passiveGeneration() {
         let gain = new Decimal(0)
-        if(hasUpgrade("c",55)) gain = gain.add(0.5)
+        if(hasUpgrade("c",55)) gain = new Decimal(0.5)
         return gain
     },
     gainMult() { // Calculate the multiplier for main currency from bonuses
         mult = new Decimal(1)
         if(hasMilestone("c",40)) mult = mult.mul(tmp.c.vcToCrystalShards)
         if(hasUpgrade("c",13)) mult = mult.mul(upgradeEffect("c",13))
+        if(inChallenge("a",12)||inChallenge("dm",12)) mult = mult.pow(0.5)
         return mult
     },
     gainExp() { // Calculate the exponent on main currency from bonuses
@@ -695,7 +710,7 @@ addLayer("c", {
     udEffect1() {
         let eff = tmp.c.udBaseEffect
         if(hasUpgrade("c",51)) eff = eff.pow(0.9)
-        if(hasUpgrade("w",32)) eff = eff.div(upgradeEffect("w",32))
+        if(hasUpgrade("w",32)) eff = eff.div(upgradeEffect("w",32)).max(1)
         if(hasChallenge("dm",11)) eff = eff.pow(challengeEffect("dm",11))
         return eff
     },
@@ -740,14 +755,12 @@ addLayer("c", {
 
     // Crystals Session ########################################################################################
     crystalsToWeakling() {
-        let mult = new Decimal(1)
-        if (player.c.points.gte(2)) {mult = player.c.points.log10().mul(6.4)}
+        let mult = player.c.points.max(1).log10().mul(6.4).max(1.5)
         return mult
     },
 
     crystalsToMentality() {
-        let mult = new Decimal(1)
-        if (player.c.points.gte(2)) {mult = player.c.points.log10().mul(3.1)}
+        let mult = player.c.points.max(1).log10().mul(3.1).max(1.2)
         return mult
     },
 
@@ -783,6 +796,70 @@ addLayer("c", {
         return amount.floor()
     },
 
+    // EC Session ########################################################################################
+    ecGain() {
+        let gain = new Decimal(1)
+        if(hasUpgrade("c",31)) gain = gain.mul(upgradeEffect("c",31))
+        if(hasUpgrade("c",32)) gain = gain.mul(tmp.c.crystalsQuantity)
+        return gain
+    },
+
+    ecToUD() { // Effect 1
+        let effectiveEC = player.c.ec
+        if(hasMilestone("c",76)) effectiveEC = effectiveEC.add(tmp.c.ecToEffectiveEC)
+        let mult = effectiveEC.mul(2).add(1).pow(0.5)
+        if(inChallenge("a",12)) mult = new Decimal(1)
+        return mult
+    },
+
+    ecToWeaklingEffect() { // Effect 3
+        let effectiveEC = player.c.ec
+        if(hasMilestone("c",76)) effectiveEC = effectiveEC.add(tmp.c.ecToEffectiveEC)
+        let mult = effectiveEC.sub(1).max(0).pow(0.9).div(0.6666).add(1.404)
+        if(inChallenge("a",11)) mult = new Decimal(1)
+        if(inChallenge("a",12)) mult = new Decimal(1)
+        return mult
+    },
+
+    ecToCostIncrease() { // Effect 4
+        let effectiveEC = player.c.ec
+        if(hasMilestone("c",76)) effectiveEC = effectiveEC.add(tmp.c.ecToEffectiveEC)
+        let addCost = effectiveEC.sub(24).max(0)
+        let sftcap = 10000
+        if(effectiveEC.gte(sftcap)) addCost = addCost.div(sftcap).pow(2/3).mul(sftcap)
+        if(inChallenge("a",12)) mult = new Decimal(1)
+        return addCost
+    },
+
+    ecToVCEffects() { // Effect 5
+        let effectiveEC = player.c.ec
+        if(hasMilestone("c",76)) effectiveEC = effectiveEC.add(tmp.c.ecToEffectiveEC)
+        let mult = effectiveEC.sub(40).max(0).pow(0.25).add(1.2).pow(0.2)
+        if(hasUpgrade("c",33)) mult = mult.pow(upgradeEffect("c",33))
+        if(inChallenge("a",12)) mult = new Decimal(1)
+        return mult
+    },
+
+    ecToEffectiveEC() { // Effect 7
+        ecuCount()
+        //hasMilestone("c",78)
+        if (true) totalECCalc()
+        let effectiveECInc = new Decimal(10)
+        let ten = new Decimal(10)
+        if(player.c.ecu.gte(3)) effectiveECInc = effectiveECInc.mul(ten.pow(player.c.ecu.sub(2).mul(1.096)))
+        if (hasMilestone("c",78)) effectiveECInc = effectiveECInc.add(player.c.totalec.div(4))
+        if(inChallenge("a",12)||inChallenge("dm",12)) effectiveECInc = new Decimal(0)
+        return effectiveECInc.floor()
+    },
+
+    ecToCostIncreaseExp() { // Effect 8 added to 3
+        let effectiveEC = player.c.ec
+        if(hasMilestone("c",77)) effectiveEC = effectiveEC.add(tmp.c.ecToEffectiveEC)
+        let addExp = effectiveEC.div(5000).max(1).log10().div(20).add(0.05)
+        if(inChallenge("a",12)) addExp = new Decimal(0)
+        return addExp
+    },
+
     // VC Session ########################################################################################
     vcGain() {
         let gain = new Decimal(1)
@@ -797,6 +874,7 @@ addLayer("c", {
         let mult = effectiveVC.add(1).pow(0.5).max(1)
         if(hasUpgrade("c",12)) mult = mult.pow(2)
         if(hasMilestone("c",74)) mult = mult.div(tmp.c.ecToVCEffects).max(1)
+        if(inChallenge("dm",12)) mult = new Decimal(1)
         return mult
     },
 
@@ -806,7 +884,7 @@ addLayer("c", {
         let mult = effectiveVC.sub(1).max(0).pow(1.2).div(3).add(1).max(1)
         if(hasMilestone("c",74)) mult = mult.div(tmp.c.ecToVCEffects).max(1)
         if(hasMilestone("c",47)) mult = mult.mul(tmp.c.vcEff4Eff5Enhance)
-        if(inChallenge("dm",11)) mult = new Decimal(1)
+        if(inChallenge("dm",11)||inChallenge("dm",12)) mult = new Decimal(1)
         return mult
     },
 
@@ -816,7 +894,7 @@ addLayer("c", {
         let mult = effectiveVC.sub(10).max(0).pow(1.5).div(7.5).add(1).max(1)
         if(hasMilestone("c",74)) mult = mult.div(tmp.c.ecToVCEffects).max(1)
         if(hasMilestone("c",47)) mult = mult.mul(tmp.c.vcEff4Eff5Enhance)
-        if(inChallenge("dm",11)) mult = new Decimal(1)
+        if(inChallenge("dm",11)||inChallenge("dm",12)) mult = new Decimal(1)
         return mult
     },
 
@@ -827,74 +905,17 @@ addLayer("c", {
         let effectiveVCInc = new Decimal(10)
         let ten = new Decimal(10)
         if(player.c.vcu.gte(3)) effectiveVCInc = effectiveVCInc.mul(ten.pow(player.c.vcu.sub(2).mul(1.096)))
-        if (hasMilestone("c",48)) effectiveVCInc = effectiveVCInc.add(player.c.totalvc.div(4))
+        if(hasMilestone("c",48)) effectiveVCInc = effectiveVCInc.add(player.c.totalvc.div(4))
+        if(inChallenge("a",12)||inChallenge("dm",12)) effectiveVCInc = new Decimal(0)
         return effectiveVCInc.floor()
     },
 
     vcEff4Eff5Enhance() { // Effect 8
         let effectiveVC = player.c.vc
         if(hasMilestone("c",46)) effectiveVC = effectiveVC.add(tmp.c.vcToEffectiveVC)
-        let mult = effectiveVC.pow(0.15)
-        if(inChallenge("dm",11)) mult = new Decimal(1)
+        let mult = effectiveVC.pow(0.15).max(1)
+        if(inChallenge("dm",11)||inChallenge("dm",12)) mult = new Decimal(1)
         return mult
-    },
-
-    // EC Session ########################################################################################
-    ecGain() {
-        let gain = new Decimal(1)
-        if(hasUpgrade("c",31)) gain = gain.mul(upgradeEffect("c",31))
-        if(hasUpgrade("c",32)) gain = gain.mul(tmp.c.crystalsQuantity)
-        return gain
-    },
-
-    ecToUD() { // Effect 1
-        let effectiveEC = player.c.ec
-        if(hasMilestone("c",76)) effectiveEC = effectiveEC.add(tmp.c.ecToEffectiveEC)
-        let mult = effectiveEC.mul(2).add(1).pow(0.5)
-        return mult
-    },
-
-    ecToWeaklingEffect() { // Effect 3
-        let effectiveEC = player.c.ec
-        if(hasMilestone("c",76)) effectiveEC = effectiveEC.add(tmp.c.ecToEffectiveEC)
-        let mult = effectiveEC.sub(1).max(0).pow(0.9).div(0.6666).add(1.404)
-        if(inChallenge("a",11)) mult = new Decimal(1)
-        return mult
-    },
-
-    ecToCostIncrease() { // Effect 4
-        let effectiveEC = player.c.ec
-        if(hasMilestone("c",76)) effectiveEC = effectiveEC.add(tmp.c.ecToEffectiveEC)
-        let addCost = effectiveEC.sub(24).max(0)
-        let sftcap = 10000
-        if(effectiveEC.gte(sftcap)) addCost = addCost.div(sftcap).pow(2/3).mul(sftcap)
-        return addCost
-    },
-
-    ecToVCEffects() { // Effect 5
-        let effectiveEC = player.c.ec
-        if(hasMilestone("c",76)) effectiveEC = effectiveEC.add(tmp.c.ecToEffectiveEC)
-        let mult = effectiveEC.sub(40).max(0).pow(0.25).add(1.2).pow(0.2)
-        if(hasUpgrade("c",33)) mult = mult.pow(upgradeEffect("c",33))
-        return mult
-    },
-
-    ecToEffectiveEC() { // Effect 7
-        ecuCount()
-        //hasMilestone("c",78)
-        if (true) totalECCalc()
-        let effectiveECInc = new Decimal(10)
-        let ten = new Decimal(10)
-        if(player.c.ecu.gte(3)) effectiveECInc = effectiveECInc.mul(ten.pow(player.c.ecu.sub(2).mul(1.096)))
-        if (hasMilestone("c",78)) effectiveECInc = effectiveECInc.add(player.c.totalec.div(4))
-        return effectiveECInc.floor()
-    },
-
-    ecToCostIncreaseExp() { // Effect 8 added to 3
-        let effectiveEC = player.c.ec
-        if(hasMilestone("c",77)) effectiveEC = effectiveEC.add(tmp.c.ecToEffectiveEC)
-        let addExp = effectiveEC.div(5000).max(1).log10().div(20).add(0.05)
-        return addExp
     },
 
     /*test() {
@@ -902,11 +923,15 @@ addLayer("c", {
         return a
     },*/
 
+
+
     update(diff) {
         player.c.ude = tmp.c.udEffect1
         player.c.ud = tmp.c.udBase.mul(tmp.c.udGainMult)
-        if(hasUpgrade("c",21)) player.c.vc = player.c.vc.add(upgradeEffect("c",21).mul(diff))
-        if(hasUpgrade("c",41)) player.c.ec = player.c.ec.add(upgradeEffect("c",41).mul(diff))
+        if(hasUpgrade("c",21)&&!inChallenge("a",12)) player.c.vc = player.c.vc.add(upgradeEffect("c",21).mul(diff))
+        if(inChallenge("a",12)&&player.a.inCh2Time > 0.1) player.c.vc = player.c.vc.add(upgradeEffect("c",21).mul(diff))
+        if(hasUpgrade("c",41)&&!inChallenge("dm",12)) player.c.ec = player.c.ec.add(upgradeEffect("c",41).mul(diff))
+        if(inChallenge("dm",12)&&player.dm.inCh2Time > 0.1) player.c.ec = player.c.ec.add(upgradeEffect("c",41).mul(diff))
     },
 
     row: 1, // Row the layer is in on the tree (0 is the first row)
@@ -1209,7 +1234,7 @@ addLayer("c", {
             currencyLayer: "c",
             cost: new Decimal(1000),
             effect() {
-                let eff = player.c.points.pow(0.14)
+                let eff = player.c.points.pow(0.14).max(1)
                 return eff
             },
             effectDisplay() {
@@ -1267,6 +1292,8 @@ addLayer("c", {
             effect() {
                 let eff = tmp.c.crystalsQuantity.mul(upgradeEffect("c",11)).div(20)
                 if(hasUpgrade("c",21)&&hasUpgrade("c",41)) eff = eff.mul(10)
+                if(hasChallenge("a",11)) eff = eff.mul(tmp.a.vppEffect.add(1))
+                if(inChallenge("dm",12)) eff = new Decimal(0)
                 return eff
             },
             effectDisplay() {
@@ -1285,12 +1312,19 @@ addLayer("c", {
             unlocked() {return (hasUpgrade(this.layer,14))}
         },
         22: {
-            title: "placeholder",
-            description: "placeholder",
+            title: "Purity",
+            description: "You gain 5% more multiplier on Purified VC<sup>1</sup> for every bought Purified VC<sup>1</sup>.",
             currencyDisplayName: "Virtuous Crystals",
             currencyInternalName: "vc",
             currencyLayer: "c",
-            cost: new Decimal(100),
+            cost: new Decimal(1e35),
+            effect() {
+                let eff = Decimal.pow(1.05,player.a.vc1Bought)
+                return eff
+            },
+            effectDisplay() {
+                return "×"+format(this.effect())
+            },
             style: {"background"() {
                 let color1 = "rgb(18, 187, 41)"
                 let color2 = "rgb(109, 189, 120)"
@@ -1301,7 +1335,7 @@ addLayer("c", {
                 }
                 return color
             }},
-            unlocked() {return (hasUpgrade(this.layer,99))}
+            unlocked() {return (player.a.vc2.gte(5))}
         },
         23: {
             title: "placeholder",
@@ -1309,7 +1343,7 @@ addLayer("c", {
             currencyDisplayName: "Virtuous Crystals",
             currencyInternalName: "vc",
             currencyLayer: "c",
-            cost: new Decimal(100),
+            cost: new Decimal(1e100),
             style: {"background"() {
                 let color1 = "rgb(18, 187, 41)"
                 let color2 = "rgb(109, 189, 120)"
@@ -1452,6 +1486,8 @@ addLayer("c", {
             effect() {
                 let eff = tmp.c.crystalsQuantity.mul(upgradeEffect("c",31)).div(20)
                 if(hasUpgrade("c",21)&&hasUpgrade("c",41)) eff = eff.mul(10)
+                if(hasChallenge("dm",11)) eff = eff.mul(tmp.dm.eppEffect.add(1))
+                if(inChallenge("a",12)) eff = new Decimal(0)
                 return eff
             },
             effectDisplay() {
@@ -1470,12 +1506,19 @@ addLayer("c", {
             unlocked() {return (hasUpgrade(this.layer,34))}
         },
         42: {
-            title: "placeholder",
-            description: "placeholder",
+            title: "Impurity",
+            description: "You gain 5% more multiplier on Purified EC<sup>1</sup> for every bought Purified EC<sup>1</sup>.",
             currencyDisplayName: "Evil Crystals",
             currencyInternalName: "ec",
             currencyLayer: "c",
-            cost: new Decimal(100),
+            cost: new Decimal(1e36),
+            effect() {
+                let eff = Decimal.pow(1.05,player.dm.ec1Bought)
+                return eff
+            },
+            effectDisplay() {
+                return "×"+format(this.effect())
+            },
             style: {"background"() {
                 let color1 = "rgb(217, 55, 250)"
                 let color2 = "rgb(225, 151, 240)"
@@ -1486,7 +1529,7 @@ addLayer("c", {
                 }
                 return color
             }},
-            unlocked() {return (hasUpgrade(this.layer,99))}
+            unlocked() {return (player.dm.ec2.gte(5))}
         },
         43: {
             title: "placeholder",
@@ -1494,7 +1537,7 @@ addLayer("c", {
             currencyDisplayName: "Evil Crystals",
             currencyInternalName: "ec",
             currencyLayer: "c",
-            cost: new Decimal(100),
+            cost: new Decimal(1e100),
             style: {"background"() {
                 let color1 = "rgb(217, 55, 250)"
                 let color2 = "rgb(225, 151, 240)"
@@ -1544,10 +1587,10 @@ addLayer("c", {
         },
         52: {
             title: "Grinding",
-            description: "Crystal Shards boosts Unstable Dust at a greatly reduced rate.",
+            description: "Crystal Shards boost Unstable Dust at a greatly reduced rate.",
             cost: new Decimal(50000),
             effect() {
-                let eff = player.c.points.log10().mul(2.1)
+                let eff = player.c.points.max(1).log10().mul(2.1)
                 return eff
             },
             effectDisplay() {
@@ -1631,6 +1674,45 @@ addLayer("c", {
             }},
             unlocked() {return (hasUpgrade(this.layer,54))}
         },
+        61: {
+            title: "Defragmentation",
+            description: "Drastically improve the Crystal Shards effect.",
+            cost: new Decimal(1e51),
+            effect() {
+                let eff = new Decimal(2)
+                return eff
+            },
+            effectDisplay() {
+                return "^"+formatWhole(this.effect())
+            },
+            style: {"background"() {
+                let color1 = "rgb(209, 31, 31)"
+                let color2 = "rgb(191, 143, 143)"
+                let color = color2
+                if(hasUpgrade("c",61)) color = color1
+                if(player.c.points.gte(tmp.c.upgrades[61].cost)&&!hasUpgrade("c",61)) {
+                    color = "linear-gradient("+color2+","+color1+")"
+                }
+                return color
+            }},
+            unlocked() {return (player.a.vc2.gte(5)||player.dm.ec2.gte(5))}
+        },
+        63: {
+            title: "Equalize",
+            description: "<i>Faith</i> and <i>Disbelief</i> has the exact same gain, but the price for Purified VCs will also increase.",
+            cost: new Decimal(1e51),
+            style: {"background"() {
+                let color1 = "rgb(209, 31, 31)"
+                let color2 = "rgb(191, 143, 143)"
+                let color = color2
+                if(hasUpgrade("c",63)) color = color1
+                if(player.c.points.gte(tmp.c.upgrades[63].cost)&&!hasUpgrade("c",63)) {
+                    color = "linear-gradient("+color2+","+color1+")"
+                }
+                return color
+            }},
+            unlocked() {return false}
+        },
     }
 })
 
@@ -1639,7 +1721,7 @@ addLayer("a", {
         Challenges: {
             content: [
                 ["display-text", function() {
-                    unlockReq = "Next challenge unlocks at <h2>1.00e100</h2> Unstable Dust.<br><br>"
+                    unlockReq = "Next challenge unlocks at <h2>"+format(tmp.a.challengeUnlockCon)+"</h2> Unstable Dust.<br><br>"
                     return unlockReq
                 }],
                 "challenges","blank","blank",
@@ -1647,8 +1729,69 @@ addLayer("a", {
             ]
         },
         Purification: {
+            /*aaa: [
+                ["display-text", function() {
+                    return "You have "+colorText("h3",tmp.c.colorvc,formatWhole(player.c.vc))+" Virtuous Crystal"+(player.c.vc.eq(1)?"":"s")+". (+"+formatWhole(upgradeEffect("c",21))+"/s)"
+                }],"blank",
+                ["display-text", function() {
+                    return "You have "+format(0)+" Purification Power, which translates to +"+format(0)+"% of extra VC production."
+                }], "blank",
+            ],*/
             content: [
-                ["display-text", "Coming Soon<br>(:", {'font-size':'180px'}]
+                ["display-text", function() {
+                    return "You have "+colorText("h3",tmp.c.colorvc,formatWhole(player.c.vc))+" Virtuous Crystal"+(player.c.vc.eq(1)?"":"s")+". (+"+formatWhole(upgradeEffect("c",21))+"/s)"
+                }],"blank",
+                ["display-text", function() {
+                    return "You have <h2>"+formatWhole(tmp.a.vppCount)+"</h2> Virtuous Purification Power, which translates to <h3>+"+formatWhole(tmp.a.vppEffect.mul(100))+"</h3>% of extra VC production."
+                }], "blank",
+                ["row", [
+                    ["display-text", function() {
+                    return "<b>Purified<br>Virtuous<br>Crystal<sup>1</sup></b>"
+                    }], ["blank",["25px","30px"]],
+                    ["display-text", function() {
+                    return "×"+format(tmp.a.vc1Mult)
+                    },{'width':'40px','display':'block'}],
+                    ["display-text", function() {
+                    return "<b>"+formatWhole(player.a.vc1)+"</b>"
+                    },{'font-size':'30px','width':'418.69px','display':'block'}],
+                    ["clickable",11]
+                ], {'width':'750px','height':'60px', 'background':'rgba(18, 187, 40, 0.25)'}],
+                ["row", [
+                    ["display-text", function() {
+                    return "<b>Purified<br>Virtuous<br>Crystal<sup>2</sup></b>"
+                    }], ["blank",["25px","30px"]],
+                    ["display-text", function() {
+                    return "×"+format(tmp.a.vc2Mult)
+                    },{'width':'40px','display':'block'}],
+                    ["display-text", function() {
+                    return "<b>"+formatWhole(player.a.vc2)+"</b>"
+                    },{'font-size':'30px','width':'418.69px','display':'block'}],
+                    ["clickable",12]
+                ], {'width':'750px','height':'60px', 'background':'rgba(18, 187, 40, 0.4)'}],
+                ["row", [
+                    ["display-text", function() {
+                    return "<b>Purified<br>Virtuous<br>Crystal<sup>3</sup></b>"
+                    }], ["blank",["25px","30px"]],
+                    ["display-text", function() {
+                    return "×"+format(1)
+                    },{'width':'40px','display':'block'}],
+                    ["display-text", function() {
+                    return "<b>"+formatWhole(0)+"</b>"
+                    },{'font-size':'30px','width':'418.69px','display':'block'}],
+                    ["clickable",13]
+                ], {'width':'750px','height':'60px', 'background':'rgba(18, 187, 40, 0.25)'}],
+                ["row", [
+                    ["display-text", function() {
+                    return "<b>Purified<br>Virtuous<br>Crystal<sup>4</sup></b>"
+                    }], ["blank",["25px","30px"]],
+                    ["display-text", function() {
+                    return "×"+format(1)
+                    },{'width':'40px','display':'block'}],
+                    ["display-text", function() {
+                    return "<b>"+formatWhole(0)+"</b>"
+                    },{'font-size':'30px','width':'418.69px','display':'block'}],
+                    ["clickable",14]
+                ], {'width':'750px','height':'60px', 'background':'rgba(18, 187, 40, 0.4)'}],
             ],
             unlocked() {return hasChallenge("a",11)}
         }
@@ -1668,7 +1811,14 @@ addLayer("a", {
     startData() { return {
         unlocked: false,
 		points: new Decimal(0),
-        challengeCompletion: 0
+        challengeCompletion: 0,
+        vc1: new Decimal(0), // Purified VC^1
+        vc1Bought: 0,
+        vc2: new Decimal(0), // Purified VC^1
+        vc2Bought: 0,
+        vpp: new Decimal(0), // Virtuous Purification Power
+        ch2Unlocked: false,
+        inCh2Time: 0
     }},
     color: "rgb(252, 244, 132)",
     requires: new Decimal(5e14), // Can be a function that takes requirement increases into account
@@ -1680,21 +1830,79 @@ addLayer("a", {
     exponent: 0, // Prestige currency exponent
     update(diff) {
         if(!player.a.unlocked) tmp.a.instantUnlockLayer
+        if(!player.a.ch2Unlocked) tmp.a.challenge2Unlock
         tmp.a.challengeCount
+        if(player.a.vc2.gte(1)) player.a.vc1 = player.a.vc1.add(tmp.a.vc1Gain.mul(diff))
+        if(inChallenge("a",12)) player.a.inCh2Time = player.a.inCh2Time + diff
     },
     row: 1, // Row the layer is in on the tree (0 is the first row)
     layerShown(){return hasMilestone("c",26)},
     doReset(resettingLayer) {
-
+        
     },
+
+    canReset: false,
+
     instantUnlockLayer() {
         if(player.c.vc.gte(5e14)) player.a.unlocked = true
         return
     },
 
     challengeCount() {
-        player.a.challengeCompletion = challengeCompletions("a",11)//+challengeCompletions("a",12)+challengeCompletions("a",21)+challengeCompletions("a",22)
+        player.a.challengeCompletion = challengeCompletions("a",11)+challengeCompletions("a",12)//+challengeCompletions("a",21)+challengeCompletions("a",22)
         return
+    },
+
+    challengeUnlockCon() {
+        let req = new Decimal("1e140")
+        if(tmp.a.challenges[12].unlocked) req = new Decimal("1e240")
+        return req
+    },
+
+    challenge2Unlock() {
+        if(player.c.ud.gte("1e140")) player.a.challenge2Unlock = true
+        return
+    },
+
+    // Purification #################################################################################################
+    vppCount() {
+        let count = player.a.vc1.mul(tmp.a.vc1Mult)
+        if(inChallenge("a",12)||inChallenge("dm",12)) count = new Decimal(0)
+        return count
+    },
+
+    vppEffect() {
+        let eff = tmp.a.vppCount
+        return eff
+    },
+
+    vc1Gain() { // this only triggers when having more than 1 VC^2
+        let count = player.a.vc2.mul(tmp.a.vc2Mult)
+        return count
+    },
+
+    vc1Mult() {
+        let mult = new Decimal(1)
+        if(hasChallenge("a",12)) mult = mult.mul(challengeEffect("a",12))
+        if(hasUpgrade("c",22)) mult = mult.mul(upgradeEffect("c",22))
+        return mult
+    },
+
+    vc2Mult() {
+        let mult = new Decimal(1)
+        return mult
+    },
+
+    vc1Cost() {
+        let startCost = new Decimal(2e15)
+        let cost = startCost.mul(Decimal.pow(3,player.a.vc1Bought))
+        return cost
+    },
+
+    vc2Cost() {
+        let startCost = new Decimal(2.5e25)
+        let cost = startCost.mul(Decimal.pow(12,player.a.vc2Bought))
+        return cost
     },
 
     challenges: {
@@ -1705,15 +1913,123 @@ addLayer("a", {
             rewardDescription: "Unlocks Virtuous Crystal Purification. Mentality gain ^1.1.",
             canComplete: function() {return player.points.gte(1.2e34)},
             rewardEffect: 1.1
-        }
+        },
+        12: {
+            name: "God's Punishment",
+            challengeDescription: "Your Crystal Shards, total Crystal Shards, VC, and EC will be reset. Crystal Shards gain is now ^0.5 and disables the gain of EC and its effects. The 7th VC effect and Purified Crystals do nothing.",
+            goalDescription: "Reach 1e52 Mentality",
+            rewardDescription: "Unlocks Virtuous Crystal<sup>2</sup> Purification. ×3 Purified Virtuous Crystal<sup>1</sup> multiplier.",
+            onEnter() {
+                player.c.points = new Decimal(0)
+                player.c.vc = new Decimal(0)
+                player.c.ec = new Decimal(0)
+                player.c.total = new Decimal(0)
+                player.a.inCh2Time = 0
+            },
+            canComplete: function() {return player.points.gte(1e52)},
+            unlocked() {return player.a.challenge2Unlock},
+            rewardEffect: 3
+        },
     },
 
     milestones: {
         0: {
             requirementDescription: "1 Challenge Completion",
             effectDescription: "Weakling upgrades are no longer reset when entering/exiting challenges.",
-            done() {return player.dm.challengeCompletion >= 1}
+            done() {return player.a.challengeCompletion >= 1}
         }
+    },
+
+    clickables: {
+        11: {
+            title: "Buy",
+            display() {return "Cost: "+format(tmp.a.vc1Cost)+" VC"},
+            canClick() {return player.c.vc.gte(tmp.a.vc1Cost)},
+            onClick() {
+                player.c.vc = player.c.vc.sub(tmp.a.vc1Cost)
+                player.a.vc1 = player.a.vc1.add(1)
+                player.a.vc1Bought++
+            },
+            onHold() {
+                player.c.vc = player.c.vc.sub(tmp.a.vc1Cost)
+                player.a.vc1 = player.a.vc1.add(1)
+                player.a.vc1Bought++
+            },
+            style: {"min-height": "40px", 'background'() {
+                let color1 = "rgb(18, 187, 41)"
+                let color2 = "rgb(109, 189, 120)"
+                let color = color2
+                if(tmp.a.clickables[11].canClick) color = color1
+                return color
+            }}
+        },
+        12: {
+            title() {
+                if(hasChallenge("a",12)) return "Buy"
+                return "Locked"
+            },
+            display() {
+                if(hasChallenge("a",12)) return "Cost: "+format(tmp.a.vc2Cost)+" EC"
+                return ""
+            },
+            canClick() {
+                if(hasChallenge("a",12)) return player.c.vc.gte(tmp.a.vc2Cost)
+                return false
+            },
+            onClick() {
+                player.c.vc = player.c.vc.sub(tmp.a.vc2Cost)
+                player.a.vc2 = player.a.vc2.add(1)
+                player.a.vc2Bought++
+            },
+            onHold() {
+                player.c.vc = player.c.vc.sub(tmp.a.vc2Cost)
+                player.a.vc2 = player.a.vc2.add(1)
+                player.a.vc2Bought++
+            },
+            style: {"min-height": "40px", 'background'() {
+                let color1 = "rgb(18, 187, 41)"
+                let color2 = "rgb(109, 189, 120)"
+                let color3 = "rgb(70, 124, 77)"
+                let color = color3
+                if(hasChallenge("a",12)) color = color2
+                if(tmp.a.clickables[12].canClick) color = color1
+                return color
+            }}
+        },
+        13: {
+            title() {
+                return "Locked"
+            },
+            display() {
+                return ""
+            },
+            canClick: false,
+            style: {"min-height": "40px", 'background'() {
+                let color1 = "rgb(18, 187, 41)"
+                let color2 = "rgb(109, 189, 120)"
+                let color3 = "rgb(70, 124, 77)"
+                let color = color3
+                if(tmp.a.clickables[13].canClick) color = color1
+                return color
+            }}
+        },
+        14: {
+            title() {
+                return "Locked"
+            },
+            display() {
+                return ""
+            },
+            canClick: false,
+            style: {"min-height": "40px", 'background'() {
+                let color1 = "rgb(18, 187, 41)"
+                let color2 = "rgb(109, 189, 120)"
+                let color3 = "rgb(70, 124, 77)"
+                let color = color3
+                if(tmp.a.clickables[14].canClick) color = color1
+                return color
+            }}
+        },
     }
 })
 
@@ -1722,7 +2038,7 @@ addLayer("dm", {
         Challenges: {
             content: [
                 ["display-text", function() {
-                    unlockReq = "Next challenge unlocks at <h2>1.00e100</h2> Unstable Dust.<br><br>"
+                    unlockReq = "Next challenge unlocks at <h2>"+format(tmp.dm.challengeUnlockCon)+"</h2> Unstable Dust.<br><br>"
                     return unlockReq
                 }],
                 "challenges","blank","blank",
@@ -1731,7 +2047,60 @@ addLayer("dm", {
         },
         Purification: {
             content: [
-                ["display-text", "Coming Soon<br>(:", {'font-size':'180px'}]
+                ["display-text", function() {
+                    return "You have "+colorText("h3",tmp.c.colorec,formatWhole(player.c.ec))+" Virtuous Crystal"+(player.c.ec.eq(1)?"":"s")+". (+"+formatWhole(upgradeEffect("c",41))+"/s)"
+                }],"blank",
+                ["display-text", function() {
+                    return "You have <h2>"+formatWhole(tmp.dm.eppCount)+"</h2> Evil Purification Power, which translates to <h3>+"+formatWhole(tmp.dm.eppEffect.mul(100))+"%</h3> of extra EC production."
+                }], "blank",
+                ["row", [
+                    ["display-text", function() {
+                    return "<b>Purified<br>Evil<br>Crystal<sup>1</sup></b>"
+                    }], ["blank",["25px","30px"]],
+                    ["display-text", function() {
+                    return "×"+format(tmp.dm.ec1Mult)
+                    },{'width':'40px','display':'block'}],
+                    ["display-text", function() {
+                    return "<b>"+formatWhole(player.dm.ec1)+"</b>"
+                    },{'font-size':'30px','width':'418.69px','display':'block'}],
+                    ["clickable",11]
+                ], {'width':'750px','height':'60px', 'background':'rgba(217, 55, 250, 0.2)'}],
+                ["row", [
+                    ["display-text", function() {
+                    return "<b>Purified<br>Evil<br>Crystal<sup>2</sup></b>"
+                    }], ["blank",["25px","30px"]],
+                    ["display-text", function() {
+                    return "×"+format(tmp.dm.ec2Mult)
+                    },{'width':'40px','display':'block'}],
+                    ["display-text", function() {
+                    return "<b>"+formatWhole(player.dm.ec2)+"</b>"
+                    },{'font-size':'30px','width':'418.69px','display':'block'}],
+                    ["clickable",12]
+                ], {'width':'750px','height':'60px', 'background':'rgba(217, 55, 250, 0.35)'}],
+                ["row", [
+                    ["display-text", function() {
+                    return "<b>Purified<br>Evil<br>Crystal<sup>3</sup></b>"
+                    }], ["blank",["25px","30px"]],
+                    ["display-text", function() {
+                    return "×"+format(1)
+                    },{'width':'40px','display':'block'}],
+                    ["display-text", function() {
+                    return "<b>"+formatWhole(0)+"</b>"
+                    },{'font-size':'30px','width':'418.69px','display':'block'}],
+                    ["clickable",13]
+                ], {'width':'750px','height':'60px', 'background':'rgba(217, 55, 250, 0.2)'}],
+                ["row", [
+                    ["display-text", function() {
+                    return "<b>Purified<br>Evil<br>Crystal<sup>4</sup></b>"
+                    }], ["blank",["25px","30px"]],
+                    ["display-text", function() {
+                    return "×"+format(1)
+                    },{'width':'40px','display':'block'}],
+                    ["display-text", function() {
+                    return "<b>"+formatWhole(0)+"</b>"
+                    },{'font-size':'30px','width':'418.69px','display':'block'}],
+                    ["clickable",14]
+                ], {'width':'750px','height':'60px', 'background':'rgba(217, 55, 250, 0.35)'}],
             ],
             unlocked() {return hasChallenge("dm",11)}
         }
@@ -1751,7 +2120,14 @@ addLayer("dm", {
     startData() { return {
         unlocked: false,
 		points: new Decimal(0),
-        challengeCompletion: 0
+        challengeCompletion: 0,
+        ec1: new Decimal(0), // Purified EC^1
+        ec1Bought: 0,
+        ec2: new Decimal(0), // Purified EC^2
+        ec2Bought: 0,
+        epp: new Decimal(0), // Evil Purification Power
+        ch2Unlocked: false,
+        inCh2Time: 0
     }},
     color: "rgb(168, 26, 69)",
     requires: new Decimal(1e15), // Can be a function that takes requirement increases into account
@@ -1763,7 +2139,10 @@ addLayer("dm", {
     exponent: 0, // Prestige currency exponent
     update(diff) {
         if(!player.dm.unlocked) tmp.dm.instantUnlockLayer
+        if(!player.dm.ch2Unlocked) tmp.dm.challenge2Unlock
         tmp.dm.challengeCount
+        if(player.dm.ec2.gte(1)) player.dm.ec1 = player.dm.ec1.add(tmp.dm.ec1Gain.mul(diff))
+        if(inChallenge("dm",12)) player.dm.inCh2Time = player.dm.inCh2Time + diff
     },
     row: 1, // Row the layer is in on the tree (0 is the first row)
     layerShown(){return hasMilestone("c",26)},
@@ -1771,14 +2150,68 @@ addLayer("dm", {
 
     },
 
+    canReset: false,
+
     instantUnlockLayer() {
         if(player.c.ec.gte(1e15)) player.dm.unlocked = true
         return
     },
 
     challengeCount() {
-        player.dm.challengeCompletion = challengeCompletions("dm",11)//+challengeCompletions("dm",12)+challengeCompletions("dm",21)+challengeCompletions("dm",22)
+        player.dm.challengeCompletion = challengeCompletions("dm",11)+challengeCompletions("dm",12)//+challengeCompletions("dm",21)+challengeCompletions("dm",22)
         return
+    },
+
+    challengeUnlockCon() {
+        let req = new Decimal("1e140")
+        if(tmp.dm.challenges[12].unlocked) req = new Decimal("1e240")
+        return req
+    },
+
+    challenge2Unlock() {
+        if(player.c.ud.gte("1e140")) player.dm.challenge2Unlock = true
+        return
+    },
+
+    // Purification
+    eppCount() {
+        let count = player.dm.ec1.mul(tmp.dm.ec1Mult)
+        if(inChallenge("a",12)||inChallenge("dm",12)) count = new Decimal(0)
+        return count
+    },
+
+    eppEffect() {
+        let eff = tmp.dm.eppCount
+        return eff
+    },
+
+    ec1Gain() { // this only triggers when having more than 1 EC^2
+        let count = player.dm.ec2.mul(tmp.dm.ec2Mult)
+        return count
+    },
+
+    ec1Mult() {
+        let mult = new Decimal(1)
+        if(hasChallenge("dm",12)) mult = mult.mul(challengeEffect("dm",12))
+        if(hasUpgrade("c",42)) mult = mult.mul(upgradeEffect("c",42))
+        return mult
+    },
+
+    ec2Mult() {
+        let mult = new Decimal(1)
+        return mult
+    },
+
+    ec1Cost() {
+        let startCost = new Decimal(5e15)
+        let cost = startCost.mul(Decimal.pow(3,player.dm.ec1Bought))
+        return cost
+    },
+
+    ec2Cost() {
+        let startCost = new Decimal(1e26)
+        let cost = startCost.mul(Decimal.pow(12,player.dm.ec2Bought))
+        return cost
     },
 
     challenges: {
@@ -1791,13 +2224,20 @@ addLayer("dm", {
             rewardEffect: 0.7
         },
         12: {
-            name: "???",
-            challengeDescription: "???",
-            goalDescription: "Reach 9e99 Mentality",
-            rewardDescription: "???",
-            canComplete: function() {return player.points.gte(9e99)},
-            unlocked() {return player.c.ud.gte(1e150)}
-            //rewardEffect: 0.7
+            name: "Virtue Eradication",
+            challengeDescription: "Your Crystal Shards, total Crystal Shards, VC, and EC will be reset. Crystal Shards gain is now ^0.5 and disables the gain of VC and its effects. The 7th EC effect and Purified Crystals do nothing.",
+            goalDescription: "Reach 5e31 Weakling Dust.",
+            rewardDescription: "Unlocks Evil Crystal<sup>2</sup> Purification. ×3 Purified Evil<br>Crystal<sup>1</sup> multiplier.",
+            onEnter() {
+                player.c.points = new Decimal(0)
+                player.c.vc = new Decimal(0)
+                player.c.ec = new Decimal(0)
+                player.c.total = new Decimal(0)
+                player.dm.inCh2Time = 0
+            },
+            canComplete: function() {return player.w.points.gte(5e31)},
+            unlocked() {return player.dm.challenge2Unlock},
+            rewardEffect: 3
         },
     },
 
@@ -1807,6 +2247,98 @@ addLayer("dm", {
             effectDescription: "Weakling upgrades are no longer reset when entering/exiting challenges.",
             done() {return player.dm.challengeCompletion >= 1}
         }
+    },
+
+     clickables: {
+        11: {
+            title: "Buy",
+            display() {return "Cost: "+format(tmp.dm.ec1Cost)+" EC"},
+            canClick() {return player.c.ec.gte(tmp.dm.ec1Cost)},
+            onClick() {
+                player.c.ec = player.c.ec.sub(tmp.dm.ec1Cost)
+                player.dm.ec1 = player.dm.ec1.add(1)
+                player.dm.ec1Bought++
+            },
+            onHold() {
+                player.c.ec = player.c.ec.sub(tmp.dm.ec1Cost)
+                player.dm.ec1 = player.dm.ec1.add(1)
+                player.dm.ec1Bought++
+            },
+            style: {"min-height": "40px", 'background'() {
+                let color1 = "rgb(217, 55, 250)"
+                let color2 = "rgb(225, 151, 240)"
+                let color = color2
+                if(tmp.dm.clickables[11].canClick) color = color1
+                return color
+            }}
+        },
+        12: {
+            title() {
+                if(hasChallenge("dm",12)) return "Buy"
+                return "Locked"
+            },
+            display() {
+                if(hasChallenge("dm",12)) return "Cost: "+format(tmp.dm.ec2Cost)+" EC"
+                return ""
+            },
+            canClick() {
+                if(hasChallenge("dm",12)) return player.c.ec.gte(tmp.dm.ec2Cost)
+                return false
+            },
+            onClick() {
+                player.c.ec = player.c.ec.sub(tmp.dm.ec2Cost)
+                player.dm.ec2 = player.dm.ec2.add(1)
+                player.dm.ec2Bought++
+            },
+            onHold() {
+                player.c.ec = player.c.ec.sub(tmp.dm.ec2Cost)
+                player.dm.ec2 = player.dm.ec2.add(1)
+                player.dm.ec2Bought++
+            },
+            style: {"min-height": "40px", 'background'() {
+                let color1 = "rgb(217, 55, 250)"
+                let color2 = "rgb(225, 151, 240)"
+                let color3 = "rgb(133, 34, 153)"
+                let color = color3
+                if(hasChallenge("dm",12)) color = color2
+                if(tmp.dm.clickables[12].canClick) color = color1
+                return color
+            }}
+        },
+        13: {
+            title() {
+                return "Locked"
+            },
+            display() {
+                return ""
+            },
+            canClick: false,
+            style: {"min-height": "40px", 'background'() {
+                let color1 = "rgb(217, 55, 250)"
+                let color2 = "rgb(225, 151, 240)"
+                let color3 = "rgb(133, 34, 153)"
+                let color = color3
+                if(tmp.dm.clickables[13].canClick) color = color1
+                return color
+            }}
+        },
+        14: {
+            title() {
+                return "Locked"
+            },
+            display() {
+                return ""
+            },
+            canClick: false,
+            style: {"min-height": "40px", 'background'() {
+                let color1 = "rgb(217, 55, 250)"
+                let color2 = "rgb(225, 151, 240)"
+                let color3 = "rgb(133, 34, 153)"
+                let color = color3
+                if(tmp.dm.clickables[14].canClick) color = color1
+                return color
+            }}
+        },
     }
 })
 
@@ -1822,7 +2354,7 @@ addLayer("d", {
         DevSpeed:{
             content: [["display-text", "Welcome to the Dev Center! In here, you can fiddle with some settings regarding the game!"],
             "blank",
-            ["clickables",[1]]]
+            ["clickables",[1,2]]]
         },
         Autobuyers: {
             content: [["display-text", "<h3 style='text-shadow:0px 0px 10px;'>Here are some parameters for automating buyables.</h3>"],
@@ -1842,7 +2374,7 @@ addLayer("d", {
             "blank",
             ["display-text",function() {
                 return "Currently, the test value is:"+
-                "<br><h1 style=\"color: rgb(62, 194, 211);\"> "+format(player.dm.challengeCompletion)+" </h1>"
+                "<br><h1 style=\"color: rgb(62, 194, 211);\"> "+format(1)+" </h1>"
             }],
             "blank",
             "milestones"
@@ -1856,11 +2388,14 @@ addLayer("d", {
     update(diff) {
         player.devSpeed = tmp.d.speedCalc
     },
+
     speedCalc() {
         let speed = new Decimal(1)
         if(getClickableState("d",11)) speed = new Decimal(0)
         if(getClickableState("d",12)) speed = new Decimal(10)
         if(getClickableState("d",13)) speed = new Decimal(100)
+        if(getClickableState("d",22)) speed = new Decimal(0.1)
+        if(getClickableState("d",23)) speed = new Decimal(0.01)
         return speed
     },
     clickables: {
@@ -1898,6 +2433,32 @@ addLayer("d", {
             onClick() {
                 if(getClickableState("d",13)==1) setClickableState("d",13,0)
                 else setClickableState("d",13,1)
+            },
+            canClick() {
+                if (getClickableState("d",11)==1 || getClickableState("d",12)==1) return false
+                else return true
+            },
+            unlocked: true
+        },
+        22: {
+            title: "0.1x speed",
+            display: "Gives 0.1x Dev Speed.",
+            onClick() {
+                if(getClickableState("d",22)==1) setClickableState("d",22,0)
+                else setClickableState("d",22,1)
+            },
+            canClick() {
+                if (getClickableState("d",11)==1 || getClickableState("d",12)==1) return false
+                else return true
+            },
+            unlocked: true
+        },
+        23: {
+            title: "0.01x speed",
+            display: "Gives 0.01x Dev Speed.",
+            onClick() {
+                if(getClickableState("d",23)==1) setClickableState("d",23,0)
+                else setClickableState("d",23,1)
             },
             canClick() {
                 if (getClickableState("d",11)==1 || getClickableState("d",12)==1) return false

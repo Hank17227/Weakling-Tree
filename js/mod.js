@@ -12,11 +12,15 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.8.2",
-	name: "Challenges Era",
+	num: "0.8.5",
+	name: "Crystals Purification",
 }
 
 let changelog = `<h1>Changelog:</h1><br><br>
+	<h3>v0.8.5 - 2026/3/11</h3><br>
+		<b>Crystals Purification</b><br>
+		Implemented the Purification Tab (it's fancy and <i>AD-like</i>)<br>
+		Fixed the issue with unexpected progression spike<br><br>
 	<h3>v0.8.2 - 2026/3/7</h3><br>
 		<b>Challenges Era</b><br>
 		Added Angelic & Demonic layer as well as their own unique challenges!<br>
@@ -71,7 +75,7 @@ let winText = `Congratulations! You have endured the mental challenge the game h
 var displayThings = [
 	function() {
 		//let num = new Decimal("1f5")
-		return "Current Endgame: Try to find it out yourself :)"
+		//return "Current Endgame: Try to find it out yourself :)"
 		//return num	
 	}
 ]
@@ -79,7 +83,7 @@ var displayThings = [
 // Determines when the game "ends"
 function isEndgame() {
 	//return player.points.gte(new Decimal("ee280000000"))
-	return (hasMilestone("a",0)&&hasMilestone("dm",0))
+	//return (hasMilestone("a",0)&&hasMilestone("dm",0))
 }
 
 
@@ -288,7 +292,7 @@ function ecEffectsList(start=new Decimal(0), end=new Decimal(0), effectOnly=fals
         "<div style='padding: 10px'>◆ Unlock new milestones for<br>Unstable Dust.</div>",
 		"<div style='padding: 10px'>◆ ×"+colorText("b",tmp.c.colorec,format(tmp.c.ecToWeaklingEffect))+" to the Weakling Dust effect.<br></div>",
 		"<div style='padding: 10px'>◆ +"+colorText("b",tmp.c.colorec,formatWhole(tmp.c.ecToCostIncrease))+" to the cost of condensing Crystals.<br></div>",
-		"<div style='padding: 10px'>◆ /"+colorText("b",tmp.c.colorec,format(tmp.c.ecToVCEffects))+" to the first 5 effects on<br>Virtuous Crystals.<br></div>",
+		"<div style='padding: 10px'>◆ /"+colorText("b",tmp.c.colorec,format(tmp.c.ecToVCEffects))+" to the first 5 effects on Virtuous Crystals.<br></div>",
 		"<div style='padding: 10px'>◆ Unlock Evil Crystal upgrades.</div>",
 		"<div style='padding: 10px'>◆ +"+colorText("b",tmp.c.colorec,formatWhole(tmp.c.ecToEffectiveEC))+" effective Evil Crystals to the EC effects.<div style='color: rgb(167, 167, 167)'>(based on the amount of EC upgrades)</div></div>",
 		"<div style='padding: 10px'>◆ +"+colorText("b",tmp.c.colorec,format(tmp.c.ecToCostIncreaseExp))+" to the exponent on the 4th effect.</div>",
@@ -367,10 +371,20 @@ function totalVCCalc() {
 	if(hasUpgrade("c",13)) player.c.totalvc = player.c.totalvc.add(1000)
 	if(hasUpgrade("c",14)) player.c.totalvc = player.c.totalvc.add(1e4)
 	if(hasUpgrade("c",21)) player.c.totalvc = player.c.totalvc.add(1e9)
-	if(hasUpgrade("c",22)) player.c.totalvc = player.c.totalvc.add(0)
+	if(hasUpgrade("c",22)) player.c.totalvc = player.c.totalvc.add(1e35)
 	if(hasUpgrade("c",23)) player.c.totalvc = player.c.totalvc.add(0)
 	if(hasUpgrade("c",24)) player.c.totalvc = player.c.totalvc.add(0)
 	if(hasUpgrade("c",53)) player.c.totalvc = player.c.totalvc.add(50000)
+	if(player.a.vc1Bought > 0)
+		for(let count = 0; count < player.a.vc1Bought; count++) {
+			let baseCost = new Decimal(2e15)
+			player.c.totalvc = player.c.totalvc.add(baseCost.mul(Decimal.pow(3,count)))
+		}
+	if(player.a.vc2Bought > 0)
+		for(let count = 0; count < player.a.vc2Bought; count++) {
+			let baseCost = new Decimal(2.5e25)
+			player.c.totalvc = player.c.totalvc.add(baseCost.mul(Decimal.pow(3,count)))
+		}
 	return
 }
 
@@ -381,10 +395,20 @@ function totalECCalc() {
 	if(hasUpgrade("c",33)) player.c.totalec = player.c.totalec.add(1200)
 	if(hasUpgrade("c",34)) player.c.totalec = player.c.totalec.add(1e4)
 	if(hasUpgrade("c",41)) player.c.totalec = player.c.totalec.add(1e9)
-	if(hasUpgrade("c",42)) player.c.totalec = player.c.totalec.add(0)
+	if(hasUpgrade("c",42)) player.c.totalec = player.c.totalec.add(1e36)
 	if(hasUpgrade("c",43)) player.c.totalec = player.c.totalec.add(0)
 	if(hasUpgrade("c",44)) player.c.totalec = player.c.totalec.add(0)
 	if(hasUpgrade("c",53)) player.c.totalec = player.c.totalec.add(50000)
+	if(player.dm.ec1Bought > 0)
+		for(let count = 0; count < player.dm.ec1Bought; count++) {
+			let baseCost = new Decimal(5e15)
+			player.c.totalec = player.c.totalec.add(baseCost.mul(Decimal.pow(3,count)))
+		}
+	if(player.dm.ec2Bought > 0)
+		for(let count = 0; count < player.dm.ec2Bought; count++) {
+			let baseCost = new Decimal(1e26)
+			player.c.totalec = player.c.totalec.add(baseCost.mul(Decimal.pow(12,count)))
+		}
 	return
 }
 /*
@@ -408,7 +432,7 @@ function decay(ratio) {
 
 // You can add non-layer related variables that should to into "player" and be saved here, along with default values
 function addedPlayerData() { return {
-	
+
 }}
 
 // Less important things beyond this point!

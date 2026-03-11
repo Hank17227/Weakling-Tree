@@ -292,7 +292,6 @@ function importSave(imported = undefined, forced = false) {
 function layerText(elem, layer, text) { // credit to Plegue tree for making these 2 functions
 	return "<" + elem + " style='color:" + tmp[layer].color + ";text-shadow:0px 0px 10px;'>" + text + "</" + elem + ">"
 }
-
 function colorText(elem, color, text) {
 	return "<" + elem + " style='color:" + color + ";text-shadow:0px 0px 10px;'>" + text + "</" + elem + ">"
 }
