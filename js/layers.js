@@ -101,6 +101,7 @@ addLayer("w", {
     passiveGeneration() {
         let gain = new Decimal(0.1)
         if(inChallenge("a",11)) gain = new Decimal(0)
+        if((inChallenge("a",21)||inChallenge("dm",21))&&(player.a.inChTime < 0.5&&player.dm.inChTime < 0.5)) gain = new Decimal(0)
         return gain
     },
     gainMult() { // Calculate the multiplier for main currency from bonuses
@@ -118,6 +119,9 @@ addLayer("w", {
         mult = mult.times(hasMilestone("c",44)?tmp.c.vcToWeakling:1)
         if(hasUpgrade(this.layer,31)) mult = mult.pow(1.2)
         if(hasUpgrade("c",55)) mult = mult.mul(tmp.c.effect)
+        if(inChallenge("a",21)) mult = mult.pow(0.1)
+        if(inChallenge("dm",21)) mult = mult.pow(2)
+        if((hasMilestone("dm",1)&&(inChallenge("dm",11)||inChallenge("dm",12)||inChallenge("dm",21)))||hasMilestone("dm",3)) mult = mult.mul(2e10)
         return mult
     },
     gainExp() { // Calculate the exponent on main currency from bonuses
@@ -157,7 +161,9 @@ addLayer("w", {
         return eff
     },
     effectDescription() {
-        return "which are dividing Mentality gain by "+layerText("h2","w",format(this.effect()))+"."
+        let effText = "which are dividing Mentality gain by "+layerText("h2","w",format(this.effect()))+"."
+        if(inChallenge("a",21)) effText = "which are multiplying Mentality gain by "+layerText("h2","w",format(this.effect()))+"."
+        return effText
     },
 
     automate() {
@@ -214,7 +220,8 @@ addLayer("w", {
                 let baseGain = new Decimal(2)
                 if (hasUpgrade("c",14)) gainDesc = "×"+format(baseGain.add(upgradeEffect("c",14)))+" Mentality gain!<br>"
                 return gainDesc+
-                "Currently: "+format(this.effect())+"×\n\n"+
+                "Currently: ×"+format(this.effect())+"<br>"+
+                "("+formatWhole(getBuyableAmount("w",11))+" purchased)<br><br>"+
                 "Cost: "+format(this.cost())+" Mentality"
             }
         },
@@ -263,7 +270,8 @@ addLayer("w", {
                 let baseGain = new Decimal(2)
                 if (hasUpgrade("c",34)) gainDesc = "×"+format(baseGain.add(upgradeEffect("c",34)))+" Weakling Dust gain!<br>"
                 return gainDesc+
-                "Currently: "+format(this.effect())+"×\n\n"+
+                "Currently: ×"+format(this.effect())+"<br>"+
+                "("+formatWhole(getBuyableAmount("w",12))+" purchased)<br><br>"+
                 "Cost: "+format(this.cost())+" Weakling Dust"
             }
         }
@@ -406,13 +414,19 @@ addLayer("w", {
         31: {
             title: "Weakling Up IV",
             description: "Weakling Dust gain ^1.2.",
-            cost: new Decimal(1e24),
-            unlocked() {return (hasMilestone("c",25))}
+            cost() {
+                if(inChallenge("dm",21)) return new Decimal("9.99e9,999")
+                return new Decimal(1e24)
+            },
+            unlocked() {return (hasMilestone("c",25)||inChallenge("dm",21))}
         },
         32: {
             title: "Real Weakening",
             description: "Weakling Dust divides the first Unstable Dust effect.",
-            cost: new Decimal(1e30),
+            cost() {
+                if(inChallenge("dm",21)) return new Decimal("9.99e9,999")
+                return new Decimal(1e30)
+            },
             effect() {
                 let eff = player.w.points.pow(0.125).div(1.5).max(1)
                 return eff
@@ -420,26 +434,35 @@ addLayer("w", {
             effectDisplay() {
                 return "/"+format(this.effect())
             },
-            unlocked() {return (hasUpgrade("w",31))}
+            unlocked() {return (hasUpgrade("w",31)||inChallenge("dm",21))}
         },
         33: {
             title: "Alleviate II",
             description: "Decrease the base division exponent of Weakling Dust effect.<br>(^0.4 → ^0.25)",
-            cost: new Decimal(1e40),
-            unlocked() {return (hasUpgrade("w",32))}
+            cost() {
+                if(inChallenge("dm",21)) return new Decimal("9.99e9,999")
+                return new Decimal(1e40)
+            },
+            unlocked() {return (hasUpgrade("w",32)||inChallenge("dm",21))}
         },
         34: {
             title: "Powerful Weakling II",
             description: "Delays the softcap of <b>Powerful Weakling</b>.<br>(softcap start: "+format(1e4)+" -> "+format(1e9)+")",
-            cost: new Decimal(1e51),
-            unlocked() {return (hasUpgrade("w",33))}
+            cost() {
+                if(inChallenge("dm",21)) return new Decimal("9.99e9,999")
+                return new Decimal(1e51)
+            },
+            unlocked() {return (hasUpgrade("w",33)||inChallenge("dm",21))}
         },
         35: {
             title: "Duality",
             description: "Enhances the effect of <b>Benediction</b> and <b>Imprecation</b> to twice of their original amount.",
             tooltip: "You can rest for a while after this upgrade~",
-            cost: new Decimal(1e57),
-            unlocked() {return (hasUpgrade("w",34))}
+            cost() {
+                if(inChallenge("dm",21)) return new Decimal("9.99e9,999")
+                return new Decimal(1e57)
+            },
+            unlocked() {return (hasUpgrade("w",34)||inChallenge("dm",21))}
         },
     }
 }) // Weaklings
@@ -455,7 +478,7 @@ addLayer("c", {
             }],
             ["display-text", function() {
                 let gainText = ""
-                let csBaseGain = player.w.points.div(2e10).pow(0.07)
+                let csBaseGain = (player.w.points.gte(2e10)?player.w.points.div(2e10).pow(0.07):new Decimal(0))
                 if(inChallenge("a",12)||inChallenge("dm",12)) csBaseGain = player.w.points.div(2e10).pow(0.035)
                 if(hasUpgrade("c",55)) gainText = "You are gaining "+colorText("b",tmp.c.color,format(csBaseGain.mul(tmp.c.gainMult).div(2)))+" Crystal Shards per second.<br><br>"
                 return gainText
@@ -488,7 +511,7 @@ addLayer("c", {
             }],
             ["display-text", function() {
                 let gainText = ""
-                let csBaseGain = player.w.points.div(2e10).pow(0.07)
+                let csBaseGain = (player.w.points.gte(2e10)?player.w.points.div(2e10).pow(0.07):new Decimal(0))
                 if(inChallenge("a",12)||inChallenge("dm",12)) csBaseGain = player.w.points.div(2e10).pow(0.035)
                 if(hasUpgrade("c",55)) gainText = "You are gaining "+colorText("b",tmp.c.color,format(csBaseGain.mul(tmp.c.gainMult).div(2)))+" Crystal Shards per second.<br><br>"
                 return gainText
@@ -607,7 +630,7 @@ addLayer("c", {
                 }], "blank",
                 ["row",[
                     ["display-text", function() {
-                        if(!hasUpgrade("c",12)||!hasUpgrade("c",32)) return colorText("h1","rgba(209, 31, 31, 0.5)","Nothing here yet...")
+                        if(!tmp.c.upgrades[51].unlocked&&!tmp.c.upgrades[61].unlocked) return colorText("h1","rgba(209, 31, 31, 0.5)","Nothing here yet...")
                     }],
                     ["upgrades",[5,6]]
                 ], {'width': '700px', 'height': '300px','background-color': 'rgba(209, 31, 31, 0.2)'}],
@@ -675,7 +698,7 @@ addLayer("c", {
     }, // Prestige currency exponent
 
     effect() {
-        let eff = player.c.points.div(1e11).max(1).pow(0.25).div(1.6).add(1).max(1)
+        let eff = player.c.points.div(1e11).max(1).pow(0.25).div(1.6).max(1)
         if(hasUpgrade("c",61)) eff = eff.pow(upgradeEffect("c",61))
         return eff.floor()
     },
@@ -683,6 +706,7 @@ addLayer("c", {
     passiveGeneration() {
         let gain = new Decimal(0)
         if(hasUpgrade("c",55)) gain = new Decimal(0.5)
+        if(inChallenge("a",21)&&player.a.inCh3Time < 0.5) gain = new Decimal(0)
         return gain
     },
     gainMult() { // Calculate the multiplier for main currency from bonuses
@@ -698,7 +722,7 @@ addLayer("c", {
 
     // UD & Crystal Shards Session ########################################################################################
     udBase() {
-        return player.w.points.gte(2e10)?player.w.points.div(2e10).sub(1):new Decimal(0)
+        return (player.w.points.gte(2e10)&&!inChallenge("a",21))?player.w.points.div(2e10).sub(1):new Decimal(0)
     },
 
     udBaseEffect() {
@@ -780,7 +804,7 @@ addLayer("c", {
 
     crystalCost() {
         let cost = tmp.c.crystalBaseCost
-        if(hasUpgrade("c",32)) cost = cost.pow(tmp.c.crystalCostExp).floor()
+        if(hasUpgrade("c",32)||hasMilestone("c",77)) cost = cost.pow(tmp.c.crystalCostExp).floor()
         return cost
     },
 
@@ -848,7 +872,7 @@ addLayer("c", {
         let ten = new Decimal(10)
         if(player.c.ecu.gte(3)) effectiveECInc = effectiveECInc.mul(ten.pow(player.c.ecu.sub(2).mul(1.096)))
         if (hasMilestone("c",78)) effectiveECInc = effectiveECInc.add(player.c.totalec.div(4))
-        if(inChallenge("a",12)||inChallenge("dm",12)) effectiveECInc = new Decimal(0)
+        if(inChallenge("a",12)||inChallenge("a",21)||inChallenge("dm",12)||inChallenge("dm",21)) effectiveECInc = new Decimal(0)
         return effectiveECInc.floor()
     },
 
@@ -906,7 +930,7 @@ addLayer("c", {
         let ten = new Decimal(10)
         if(player.c.vcu.gte(3)) effectiveVCInc = effectiveVCInc.mul(ten.pow(player.c.vcu.sub(2).mul(1.096)))
         if(hasMilestone("c",48)) effectiveVCInc = effectiveVCInc.add(player.c.totalvc.div(4))
-        if(inChallenge("a",12)||inChallenge("dm",12)) effectiveVCInc = new Decimal(0)
+        if(inChallenge("a",12)||inChallenge("a",21)||inChallenge("dm",12)||inChallenge("dm",21)) effectiveVCInc = new Decimal(0)
         return effectiveVCInc.floor()
     },
 
@@ -928,10 +952,14 @@ addLayer("c", {
     update(diff) {
         player.c.ude = tmp.c.udEffect1
         player.c.ud = tmp.c.udBase.mul(tmp.c.udGainMult)
-        if(hasUpgrade("c",21)&&!inChallenge("a",12)) player.c.vc = player.c.vc.add(upgradeEffect("c",21).mul(diff))
-        if(inChallenge("a",12)&&player.a.inCh2Time > 0.1) player.c.vc = player.c.vc.add(upgradeEffect("c",21).mul(diff))
-        if(hasUpgrade("c",41)&&!inChallenge("dm",12)) player.c.ec = player.c.ec.add(upgradeEffect("c",41).mul(diff))
-        if(inChallenge("dm",12)&&player.dm.inCh2Time > 0.1) player.c.ec = player.c.ec.add(upgradeEffect("c",41).mul(diff))
+        if(hasUpgrade("c",21)&&!inChallenge("a",12)&&!inChallenge("a",21)&&!inChallenge("dm",21)) player.c.vc = player.c.vc.add(upgradeEffect("c",21).mul(diff))
+        if(hasUpgrade("c",41)&&!inChallenge("dm",12)&&!inChallenge("a",21)&&!inChallenge("dm",21)) player.c.ec = player.c.ec.add(upgradeEffect("c",41).mul(diff))
+        if(inChallenge("a",12)&&player.a.inChTime > 0.5) player.c.vc = player.c.vc.add(upgradeEffect("c",21).mul(diff))
+        if(inChallenge("dm",12)&&player.dm.inChTime > 0.5) player.c.ec = player.c.ec.add(upgradeEffect("c",41).mul(diff))
+        if((inChallenge("a",21)||inChallenge("dm",21))&&(player.a.inChTime > 0.5||player.dm.inChTime > 0.5)) {
+            player.c.vc = player.c.vc.add(upgradeEffect("c",21).mul(diff))
+            player.c.ec = player.c.ec.add(upgradeEffect("c",41).mul(diff))
+        }
     },
 
     row: 1, // Row the layer is in on the tree (0 is the first row)
@@ -1180,7 +1208,10 @@ addLayer("c", {
             currencyDisplayName: "Virtuous Crystals",
             currencyInternalName: "vc",
             currencyLayer: "c",
-            cost: new Decimal(50),
+            cost() {
+                if(inChallenge("dm",21)) return new Decimal("9.99e9,999")
+                return new Decimal(50)
+            },
             effect() {
                 let eff = player.c.total.pow(0.2).div(1.15).max(1).floor()
                 return eff
@@ -1198,7 +1229,7 @@ addLayer("c", {
                 }
                 return color
             }},
-            unlocked() {return (hasMilestone(this.layer,45))}
+            unlocked() {return (hasMilestone(this.layer,45)||inChallenge("dm",21))}
         },
         12: {
             title: "Empowerment",
@@ -1206,7 +1237,10 @@ addLayer("c", {
             currencyDisplayName: "Virtuous Crystals",
             currencyInternalName: "vc",
             currencyLayer: "c",
-            cost: new Decimal(100),
+            cost() {
+                if(inChallenge("dm",21)) return new Decimal("9.99e9,999")
+                return new Decimal(100)
+            },
             effect() {
                 let eff = new Decimal(2)
                 return eff
@@ -1224,7 +1258,7 @@ addLayer("c", {
                 }
                 return color
             }},
-            unlocked() {return (hasUpgrade(this.layer,11))}
+            unlocked() {return (hasUpgrade(this.layer,11)||inChallenge("dm",21))}
         },
         13: {
             title: "Enchantment",
@@ -1232,7 +1266,10 @@ addLayer("c", {
             currencyDisplayName: "Virtuous Crystals",
             currencyInternalName: "vc",
             currencyLayer: "c",
-            cost: new Decimal(1000),
+            cost() {
+                if(inChallenge("dm",21)) return new Decimal("9.99e9,999")
+                return new Decimal(1000)
+            },
             effect() {
                 let eff = player.c.points.pow(0.14).max(1)
                 return eff
@@ -1250,7 +1287,7 @@ addLayer("c", {
                 }
                 return color
             }},
-            unlocked() {return (hasUpgrade(this.layer,12))}
+            unlocked() {return (hasUpgrade(this.layer,12)||inChallenge("dm",21))}
         },
         14: {
             title: "Benediction",
@@ -1258,7 +1295,10 @@ addLayer("c", {
             currencyDisplayName: "Virtuous Crystals",
             currencyInternalName: "vc",
             currencyLayer: "c",
-            cost: new Decimal(10000),
+            cost() {
+                if(inChallenge("dm",21)) return new Decimal("9.99e9,999")
+                return new Decimal(10000)
+            },
             effect() {
                 let eff = new Decimal(0.05)
                 let mult = new Decimal(0.04)
@@ -1279,7 +1319,7 @@ addLayer("c", {
                 }
                 return color
             }},
-            unlocked() {return (hasUpgrade(this.layer,13))}
+            unlocked() {return (hasUpgrade(this.layer,13)||inChallenge("dm",21))}
         },
         21: {
             title: "Construction",
@@ -1290,9 +1330,12 @@ addLayer("c", {
             tooltip: "When having Destruction at the same time, ×10 the effect of this upgrade and disable the Crystals button.",
             cost: new Decimal(1e9),
             effect() {
-                let eff = tmp.c.crystalsQuantity.mul(upgradeEffect("c",11)).div(20)
+                let eff = tmp.c.crystalsQuantity.div(20)
+                if(hasUpgrade("c",11)) eff = eff.mul(upgradeEffect("c",11))
                 if(hasUpgrade("c",21)&&hasUpgrade("c",41)) eff = eff.mul(10)
-                if(hasChallenge("a",11)) eff = eff.mul(tmp.a.vppEffect.add(1))
+                if(hasChallenge("a",11)&&!inChallenge("a",21)) eff = eff.mul(tmp.a.vppEffect.add(1))
+                if((hasMilestone("dm",2)&&(inChallenge("dm",11)||inChallenge("dm",12)||inChallenge("dm",21)))||hasMilestone("dm",3)) eff = eff.mul(1e3)
+                if((hasMilestone("a",2)&&(inChallenge("a",11)||inChallenge("a",12)||inChallenge("a",21)))||hasMilestone("a",3)) eff = eff.mul(1e6)
                 if(inChallenge("dm",12)) eff = new Decimal(0)
                 return eff
             },
@@ -1309,7 +1352,7 @@ addLayer("c", {
                 }
                 return color
             }},
-            unlocked() {return (hasUpgrade(this.layer,14))}
+            unlocked() {return (hasUpgrade(this.layer,14)||inChallenge("dm",21))}
         },
         22: {
             title: "Purity",
@@ -1338,12 +1381,19 @@ addLayer("c", {
             unlocked() {return (player.a.vc2.gte(5))}
         },
         23: {
-            title: "placeholder",
-            description: "placeholder",
+            title: "Purity<sup>2</sup>",
+            description: "You gain 4% more multiplier on Purified VC<sup>2</sup> for every bought Purified VC<sup>2</sup>.",
             currencyDisplayName: "Virtuous Crystals",
             currencyInternalName: "vc",
             currencyLayer: "c",
-            cost: new Decimal(1e100),
+            cost: new Decimal(1e65),
+            effect() {
+                let eff = Decimal.pow(1.04,player.a.vc2Bought)
+                return eff
+            },
+            effectDisplay() {
+                return "×"+format(this.effect())
+            },
             style: {"background"() {
                 let color1 = "rgb(18, 187, 41)"
                 let color2 = "rgb(109, 189, 120)"
@@ -1354,15 +1404,22 @@ addLayer("c", {
                 }
                 return color
             }},
-            unlocked() {return (hasUpgrade(this.layer,22))}
+            unlocked() {return hasChallenge("a",21)}
         },
         24: {
-            title: "placeholder",
-            description: "placeholder",
+            title: "Purity<sup>3</sup>",
+            description: "You gain 3% more multiplier on Purified VC<sup>3</sup> for every bought Purified VC<sup>3</sup>.",
             currencyDisplayName: "Virtuous Crystals",
             currencyInternalName: "vc",
             currencyLayer: "c",
-            cost: new Decimal(100),
+            cost: new Decimal(1e100),
+            effect() {
+                let eff = Decimal.pow(1.03,player.a.vc3Bought)
+                return eff
+            },
+            effectDisplay() {
+                return "×"+format(this.effect())
+            },
             style: {"background"() {
                 let color1 = "rgb(18, 187, 41)"
                 let color2 = "rgb(109, 189, 120)"
@@ -1373,7 +1430,7 @@ addLayer("c", {
                 }
                 return color
             }},
-            unlocked() {return (hasUpgrade(this.layer,23))}
+            unlocked() {return false}
         },
         31: {
             title: "Disbelief",
@@ -1381,7 +1438,10 @@ addLayer("c", {
             currencyDisplayName: "Evil Crystals",
             currencyInternalName: "ec",
             currencyLayer: "c",
-            cost: new Decimal(50),
+            cost() {
+                if(inChallenge("dm",21)) return new Decimal("9.99e9,999")
+                return new Decimal(50)
+            },
             effect() {
                 let eff = player.c.total.pow(0.22).div(1.35).max(1).floor()
                 return eff
@@ -1407,7 +1467,10 @@ addLayer("c", {
             currencyDisplayName: "Evil Crystals",
             currencyInternalName: "ec",
             currencyLayer: "c",
-            cost: new Decimal(100),
+            cost() {
+                if(inChallenge("dm",21)) return new Decimal("9.99e9,999")
+                return new Decimal(100)
+            },
             style: {"background"() {
                 let color1 = "rgb(217, 55, 250)"
                 let color2 = "rgb(225, 151, 240)"
@@ -1418,7 +1481,7 @@ addLayer("c", {
                 }
                 return color
             }},
-            unlocked() {return (hasUpgrade(this.layer,31))}
+            unlocked() {return (hasUpgrade(this.layer,31)||inChallenge("dm",21))}
         },
         33: {
             title: "Degradation",
@@ -1426,7 +1489,10 @@ addLayer("c", {
             currencyDisplayName: "Evil Crystals",
             currencyInternalName: "ec",
             currencyLayer: "c",
-            cost: new Decimal(1200),
+            cost() {
+                if(inChallenge("dm",21)) return new Decimal("9.99e9,999")
+                return new Decimal(1200)
+            },
             style: {"background"() {
                 let color1 = "rgb(217, 55, 250)"
                 let color2 = "rgb(225, 151, 240)"
@@ -1444,7 +1510,7 @@ addLayer("c", {
             effectDisplay() {
                 return "^"+formatWhole(this.effect())
             },
-            unlocked() {return (hasUpgrade(this.layer,32))}
+            unlocked() {return (hasUpgrade(this.layer,32)||inChallenge("dm",21))}
         },
         34: {
             title: "Imprecation",
@@ -1452,7 +1518,10 @@ addLayer("c", {
             currencyDisplayName: "Evil Crystals",
             currencyInternalName: "ec",
             currencyLayer: "c",
-            cost: new Decimal(10000),
+            cost() {
+                if(inChallenge("dm",21)) return new Decimal("9.99e9,999")
+                return new Decimal(10000)
+            },
             effect() {
                 let eff = new Decimal(0.05)
                 let mult = new Decimal(0.025)
@@ -1473,7 +1542,7 @@ addLayer("c", {
                 }
                 return color
             }},
-            unlocked() {return (hasUpgrade(this.layer,33))}
+            unlocked() {return (hasUpgrade(this.layer,33)||inChallenge("dm",21))}
         },
         41: {
             title: "Destruction",
@@ -1484,9 +1553,12 @@ addLayer("c", {
             tooltip: "When having Construction at the same time, ×10 the effect of this upgrade and disable the Crystals button.",
             cost: new Decimal(1e9),
             effect() {
-                let eff = tmp.c.crystalsQuantity.mul(upgradeEffect("c",31)).div(20)
+                let eff = tmp.c.crystalsQuantity.div(20)
+                if(hasUpgrade("c",31)) eff = eff.mul(upgradeEffect("c",31))
                 if(hasUpgrade("c",21)&&hasUpgrade("c",41)) eff = eff.mul(10)
-                if(hasChallenge("dm",11)) eff = eff.mul(tmp.dm.eppEffect.add(1))
+                if(hasChallenge("dm",11)&&!inChallenge("a",21)) eff = eff.mul(tmp.dm.eppEffect.add(1))
+                if((hasMilestone("dm",2)&&(inChallenge("dm",11)||inChallenge("dm",12)||inChallenge("dm",21)))||hasMilestone("dm",3)) eff = eff.mul(1e6)
+                if((hasMilestone("a",2)&&(inChallenge("a",11)||inChallenge("a",12)||inChallenge("a",21)))||hasMilestone("a",3)) eff = eff.mul(1e3)
                 if(inChallenge("a",12)) eff = new Decimal(0)
                 return eff
             },
@@ -1503,7 +1575,7 @@ addLayer("c", {
                 }
                 return color
             }},
-            unlocked() {return (hasUpgrade(this.layer,34))}
+            unlocked() {return (hasUpgrade(this.layer,34)||inChallenge("dm",21))}
         },
         42: {
             title: "Impurity",
@@ -1532,12 +1604,19 @@ addLayer("c", {
             unlocked() {return (player.dm.ec2.gte(5))}
         },
         43: {
-            title: "placeholder",
-            description: "placeholder",
+            title: "Impurity<sup>2</sup>",
+            description: "You gain 4% more multiplier on Purified EC<sup>2</sup> for every bought Purified EC<sup>2</sup>.",
             currencyDisplayName: "Evil Crystals",
             currencyInternalName: "ec",
             currencyLayer: "c",
-            cost: new Decimal(1e100),
+            cost: Decimal.pow(10,100/1.5),
+            effect() {
+                let eff = Decimal.pow(1.04,player.dm.ec2Bought)
+                return eff
+            },
+            effectDisplay() {
+                return "×"+format(this.effect())
+            },
             style: {"background"() {
                 let color1 = "rgb(217, 55, 250)"
                 let color2 = "rgb(225, 151, 240)"
@@ -1548,15 +1627,22 @@ addLayer("c", {
                 }
                 return color
             }},
-            unlocked() {return (hasUpgrade(this.layer,42))}
+            unlocked() {return hasChallenge("dm",21)}
         },
         44: {
-            title: "placeholder",
-            description: "placeholder",
+            title: "Impurity<sup>3</sup>",
+            description: "You gain 3% more multiplier on Purified EC<sup>3</sup> for every bought Purified EC<sup>3</sup>.",
             currencyDisplayName: "Evil Crystals",
             currencyInternalName: "ec",
             currencyLayer: "c",
-            cost: new Decimal(100),
+            cost: new Decimal(1e100),
+            effect() {
+                let eff = Decimal.pow(1.03,player.dm.ec2Bought)
+                return eff
+            },
+            effectDisplay() {
+                return "×"+format(this.effect())
+            },
             style: {"background"() {
                 let color1 = "rgb(217, 55, 250)"
                 let color2 = "rgb(225, 151, 240)"
@@ -1567,12 +1653,15 @@ addLayer("c", {
                 }
                 return color
             }},
-            unlocked() {return (hasUpgrade(this.layer,43))}
+            unlocked() {return false}
         },
         51: {
             title: "Fogging",
             description: "The first Unstable Dust effect is now ^0.9.",
-            cost: new Decimal(1000),
+            cost() {
+                if(inChallenge("dm",21)) return new Decimal("9.99e9,999")
+                return new Decimal(1000)
+            },
             style: {"background"() {
                 let color1 = "rgb(209, 31, 31)"
                 let color2 = "rgb(191, 143, 143)"
@@ -1583,12 +1672,15 @@ addLayer("c", {
                 }
                 return color
             }},
-            unlocked() {return (hasUpgrade(this.layer,12)&&hasUpgrade(this.layer,32))}
+            unlocked() {return ((hasUpgrade(this.layer,12)&&hasUpgrade(this.layer,32))||inChallenge("dm",21))}
         },
         52: {
             title: "Grinding",
             description: "Crystal Shards boost Unstable Dust at a greatly reduced rate.",
-            cost: new Decimal(50000),
+            cost() {
+                if(inChallenge("dm",21)) return new Decimal("9.99e9,999")
+                return new Decimal(50000)
+            },
             effect() {
                 let eff = player.c.points.max(1).log10().mul(2.1)
                 return eff
@@ -1606,7 +1698,7 @@ addLayer("c", {
                 }
                 return color
             }},
-            unlocked() {return (hasUpgrade(this.layer,13)&&hasUpgrade(this.layer,33))}
+            unlocked() {return ((hasUpgrade(this.layer,13)&&hasUpgrade(this.layer,33))||inChallenge("dm",21))}
         },
         53: {
             costCS: new Decimal(5e6),
@@ -1619,6 +1711,11 @@ addLayer("c", {
                 return title+"<br>"+description+"<br><br>"+cost
             },
             canAfford() {
+                if(inChallenge("dm",21)) {
+                    tmp.c.upgrades[53].costCS = new Decimal("9.99e9,999")
+                    tmp.c.upgrades[53].costVC = new Decimal("9.99e9,999")
+                    tmp.c.upgrades[53].costEC = new Decimal("9.99e9,999")
+                }
                 let csCost = player.c.points.gte(tmp.c.upgrades[53].costCS)
                 let vcCost = player.c.vc.gte(tmp.c.upgrades[53].costVC)
                 let ecCost = player.c.ec.gte(tmp.c.upgrades[53].costEC)
@@ -1639,12 +1736,15 @@ addLayer("c", {
                 }
                 return color
             }},
-            unlocked() {return (hasUpgrade(this.layer,14)&&hasUpgrade(this.layer,34))}
+            unlocked() {return ((hasUpgrade(this.layer,14)&&hasUpgrade(this.layer,34))||inChallenge("dm",21))}
         },
         54: {
             title: "Clarity",
             description: "Mentality and Weakling layer are no longer reset by condensing Crystal and Crystal Shards.",
-            cost: new Decimal(5e12),
+            cost() {
+                if(inChallenge("dm",21)) return new Decimal("9.99e9,999")
+                return new Decimal(5e12)
+            },
             style: {"background"() {
                 let color1 = "rgb(209, 31, 31)"
                 let color2 = "rgb(191, 143, 143)"
@@ -1672,7 +1772,7 @@ addLayer("c", {
                 }
                 return color
             }},
-            unlocked() {return (hasUpgrade(this.layer,54))}
+            unlocked() {return (hasUpgrade(this.layer,54)||inChallenge("dm",21))}
         },
         61: {
             title: "Defragmentation",
@@ -1697,10 +1797,34 @@ addLayer("c", {
             }},
             unlocked() {return (player.a.vc2.gte(5)||player.dm.ec2.gte(5))}
         },
+        62: {
+            title: "Dissolution",
+            description: "Crystal Shards and Weakling Dust boost each other.",
+            tooltip: "Currently, this upgrade has no effect :)<br>Congrats for making it all the way here!",
+            cost: new Decimal(1e88),
+            style: {"background"() {
+                let color1 = "rgb(209, 31, 31)"
+                let color2 = "rgb(191, 143, 143)"
+                let color = color2
+                if(hasUpgrade("c",62)) color = color1
+                if(player.c.points.gte(tmp.c.upgrades[62].cost)&&!hasUpgrade("c",62)) {
+                    color = "linear-gradient("+color2+","+color1+")"
+                }
+                return color
+            }},
+            unlocked() {return hasChallenge("dm",21)}
+        },
         63: {
-            title: "Equalize",
-            description: "<i>Faith</i> and <i>Disbelief</i> has the exact same gain, but the price for Purified VCs will also increase.",
-            cost: new Decimal(1e51),
+            title: "Sublimation",
+            description: "Boosts Mentality based on Crystal Shards.",
+            cost: new Decimal("9e999"),
+            effect() {
+                let eff = new Decimal(2)
+                return eff
+            },
+            effectDisplay() {
+                return "^"+formatWhole(this.effect())
+            },
             style: {"background"() {
                 let color1 = "rgb(209, 31, 31)"
                 let color2 = "rgb(191, 143, 143)"
@@ -1713,36 +1837,54 @@ addLayer("c", {
             }},
             unlocked() {return false}
         },
+        64: {
+            title: "Equalize",
+            description: "<i>Faith</i> and <i>Disbelief</i> has the exact same gain, but the price for Purified VCs will also increase.",
+            cost: new Decimal(1e51),
+            style: {"background"() {
+                let color1 = "rgb(209, 31, 31)"
+                let color2 = "rgb(191, 143, 143)"
+                let color = color2
+                if(hasUpgrade("c",64)) color = color1
+                if(player.c.points.gte(tmp.c.upgrades[64].cost)&&!hasUpgrade("c",64)) {
+                    color = "linear-gradient("+color2+","+color1+")"
+                }
+                return color
+            }},
+            unlocked() {return hasUpgrade("c",63)}
+        },
     }
-})
+}) // Crystals
 
 addLayer("a", {
     tabFormat: {
+        Intro: {
+            content: [["infobox","introBox"]]
+        },
         Challenges: {
             content: [
                 ["display-text", function() {
-                    unlockReq = "Next challenge unlocks at <h2>"+format(tmp.a.challengeUnlockCon)+"</h2> Unstable Dust.<br><br>"
+                    unlockReq = "Next challenge unlocks at <h2>"+format(tmp.a.challengeUnlockCon)+"</h2> Unstable Dust.<br>"
                     return unlockReq
                 }],
+                ["display-text", function() {
+                    additionalText = ""
+                    if(player.a.ch2Unlocked) additionalText = "For <b>God's Punishment</b> and the challenges onwards, your Crystal Shards, total Crystal Shards, VC, and EC will be reset. The 7th effect of VC and EC will be nullified."
+                    return additionalText
+                }],"blank",
                 "challenges","blank","blank",
                 "milestones"
             ]
         },
         Purification: {
-            /*aaa: [
-                ["display-text", function() {
-                    return "You have "+colorText("h3",tmp.c.colorvc,formatWhole(player.c.vc))+" Virtuous Crystal"+(player.c.vc.eq(1)?"":"s")+". (+"+formatWhole(upgradeEffect("c",21))+"/s)"
-                }],"blank",
-                ["display-text", function() {
-                    return "You have "+format(0)+" Purification Power, which translates to +"+format(0)+"% of extra VC production."
-                }], "blank",
-            ],*/
             content: [
                 ["display-text", function() {
                     return "You have "+colorText("h3",tmp.c.colorvc,formatWhole(player.c.vc))+" Virtuous Crystal"+(player.c.vc.eq(1)?"":"s")+". (+"+formatWhole(upgradeEffect("c",21))+"/s)"
                 }],"blank",
                 ["display-text", function() {
-                    return "You have <h2>"+formatWhole(tmp.a.vppCount)+"</h2> Virtuous Purification Power, which translates to <h3>+"+formatWhole(tmp.a.vppEffect.mul(100))+"</h3>% of extra VC production."
+                    let effectText = "which translates to <h3>+"+formatWhole(tmp.a.vppEffect.mul(100))+"</h3>% of extra VC production."
+                    if(inChallenge("a",21)) effectText = "which translates to <h3>+"+formatWhole(tmp.a.vppEffect.mul(100))+"</h3>% of extra Mentality production."
+                    return "You have <h2>"+formatWhole(tmp.a.vppCount)+"</h2> Virtuous Purification Power, "+effectText
                 }], "blank",
                 ["row", [
                     ["display-text", function() {
@@ -1773,10 +1915,10 @@ addLayer("a", {
                     return "<b>Purified<br>Virtuous<br>Crystal<sup>3</sup></b>"
                     }], ["blank",["25px","30px"]],
                     ["display-text", function() {
-                    return "×"+format(1)
+                    return "×"+format(tmp.a.vc3Mult)
                     },{'width':'40px','display':'block'}],
                     ["display-text", function() {
-                    return "<b>"+formatWhole(0)+"</b>"
+                    return "<b>"+formatWhole(player.a.vc3)+"</b>"
                     },{'font-size':'30px','width':'418.69px','display':'block'}],
                     ["clickable",13]
                 ], {'width':'750px','height':'60px', 'background':'rgba(18, 187, 40, 0.25)'}],
@@ -1785,10 +1927,10 @@ addLayer("a", {
                     return "<b>Purified<br>Virtuous<br>Crystal<sup>4</sup></b>"
                     }], ["blank",["25px","30px"]],
                     ["display-text", function() {
-                    return "×"+format(1)
+                    return "×"+format(tmp.a.vc4Mult)
                     },{'width':'40px','display':'block'}],
                     ["display-text", function() {
-                    return "<b>"+formatWhole(0)+"</b>"
+                    return "<b>"+formatWhole(player.a.vc4)+"</b>"
                     },{'font-size':'30px','width':'418.69px','display':'block'}],
                     ["clickable",14]
                 ], {'width':'750px','height':'60px', 'background':'rgba(18, 187, 40, 0.4)'}],
@@ -1804,7 +1946,14 @@ addLayer("a", {
         introBox: {
             title: "",
             body() {
-                return ""
+                return "Welcome to the next part of the game! This layer is a continual one dedicated for Virtuous Crystals! "+
+                "Now, what you'll be facing are the challenges that will have their own unique condition and requirement.<br><br>"+
+                "But worry not! Even though challenges may look tempting, they're actually quite straight forward to complete! "+
+                "Once you reached the requirement to unlock them, you're as good to go to attempt them!<br>"+
+                "(Each challenge takes about 5-15 minutes)<br><br>"+
+                "Next is the Purification, which will be unlocked when you complete the first challenge here. It was my rough idea "+
+                "back when I was designing the Crystals layer (to be exact, it was gonna be a random stat for VC). But now it is moved to here "+
+                "and I'm quite happy of how it turned out!"
             }
         }
     },
@@ -1814,11 +1963,16 @@ addLayer("a", {
         challengeCompletion: 0,
         vc1: new Decimal(0), // Purified VC^1
         vc1Bought: 0,
-        vc2: new Decimal(0), // Purified VC^1
+        vc2: new Decimal(0), // Purified VC^2
         vc2Bought: 0,
+        vc3: new Decimal(0), // Purified VC^3
+        vc3Bought: 0,
+        vc4: new Decimal(0), // Purified VC^4
+        vc4Bought: 0,
         vpp: new Decimal(0), // Virtuous Purification Power
         ch2Unlocked: false,
-        inCh2Time: 0
+        inChTime: 0,
+        ch3Unlocked: false,
     }},
     color: "rgb(252, 244, 132)",
     requires: new Decimal(5e14), // Can be a function that takes requirement increases into account
@@ -1831,9 +1985,12 @@ addLayer("a", {
     update(diff) {
         if(!player.a.unlocked) tmp.a.instantUnlockLayer
         if(!player.a.ch2Unlocked) tmp.a.challenge2Unlock
+        if(!player.a.ch3Unlocked) tmp.a.challenge3Unlock
         tmp.a.challengeCount
         if(player.a.vc2.gte(1)) player.a.vc1 = player.a.vc1.add(tmp.a.vc1Gain.mul(diff))
-        if(inChallenge("a",12)) player.a.inCh2Time = player.a.inCh2Time + diff
+        if(player.a.vc3.gte(1)) player.a.vc2 = player.a.vc2.add(tmp.a.vc2Gain.mul(diff))
+        if(player.a.vc4.gte(1)) player.a.vc3 = player.a.vc3.add(tmp.a.vc3Gain.mul(diff))
+        if(inChallenge("a",12)||inChallenge("a",21)) player.a.inChTime = player.a.inChTime + diff
     },
     row: 1, // Row the layer is in on the tree (0 is the first row)
     layerShown(){return hasMilestone("c",26)},
@@ -1849,18 +2006,24 @@ addLayer("a", {
     },
 
     challengeCount() {
-        player.a.challengeCompletion = challengeCompletions("a",11)+challengeCompletions("a",12)//+challengeCompletions("a",21)+challengeCompletions("a",22)
+        player.a.challengeCompletion = challengeCompletions("a",11)+challengeCompletions("a",12)+challengeCompletions("a",21)//+challengeCompletions("a",22)
         return
     },
 
     challengeUnlockCon() {
         let req = new Decimal("1e140")
         if(tmp.a.challenges[12].unlocked) req = new Decimal("1e240")
+        if(tmp.a.challenges[21].unlocked) req = new Decimal("1e450")
         return req
     },
 
     challenge2Unlock() {
-        if(player.c.ud.gte("1e140")) player.a.challenge2Unlock = true
+        if(player.c.ud.gte("1e140")) player.a.ch2Unlocked = true
+        return
+    },
+
+    challenge3Unlock() {
+        if(player.c.ud.gte("1e240")) player.a.ch3Unlocked = true
         return
     },
 
@@ -1881,14 +2044,38 @@ addLayer("a", {
         return count
     },
 
+    vc2Gain() { // this only triggers when having more than 1 VC^3
+        let count = player.a.vc3.mul(tmp.a.vc3Mult)
+        return count
+    },
+
+    vc3Gain() { // this only triggers when having more than 1 VC^4
+        let count = player.a.vc4.mul(tmp.a.vc4Mult)
+        return count
+    },
+
     vc1Mult() {
         let mult = new Decimal(1)
         if(hasChallenge("a",12)) mult = mult.mul(challengeEffect("a",12))
         if(hasUpgrade("c",22)) mult = mult.mul(upgradeEffect("c",22))
+        if(hasChallenge("a",21)) mult = mult.mul(challengeEffect("a",21))
         return mult
     },
 
     vc2Mult() {
+        let mult = new Decimal(1)
+        if(hasChallenge("a",21)) mult = mult.mul(challengeEffect("a",21))
+        if(hasUpgrade("c",23)) mult = mult.mul(upgradeEffect("c",23))
+        return mult
+    },
+
+    vc3Mult() {
+        let mult = new Decimal(1)
+        if(hasUpgrade("c",24)) mult = mult.mul(upgradeEffect("c",24))
+        return mult
+    },
+
+    vc4Mult() {
         let mult = new Decimal(1)
         return mult
     },
@@ -1905,6 +2092,18 @@ addLayer("a", {
         return cost
     },
 
+    vc3Cost() {
+        let startCost = new Decimal(7.5e50)
+        let cost = startCost.mul(Decimal.pow(60,player.a.vc3Bought))
+        return cost
+    },
+
+    vc4Cost() {
+        let startCost = new Decimal("9e999")
+        let cost = startCost.mul(Decimal.pow(360,player.a.vc4Bought))
+        return cost
+    },
+
     challenges: {
         11: {
             name: "Weakling Nullifier",
@@ -1916,18 +2115,36 @@ addLayer("a", {
         },
         12: {
             name: "God's Punishment",
-            challengeDescription: "Your Crystal Shards, total Crystal Shards, VC, and EC will be reset. Crystal Shards gain is now ^0.5 and disables the gain of EC and its effects. The 7th VC effect and Purified Crystals do nothing.",
-            goalDescription: "Reach 1e52 Mentality",
+            challengeDescription: "Crystal Shards gain is now ^0.5 and disables the gain of EC and its effects. Purified Crystals do nothing.",
+            goalDescription: "Reach 1e52 Mentality.",
             rewardDescription: "Unlocks Virtuous Crystal<sup>2</sup> Purification. ×3 Purified Virtuous Crystal<sup>1</sup> multiplier.",
             onEnter() {
                 player.c.points = new Decimal(0)
                 player.c.vc = new Decimal(0)
                 player.c.ec = new Decimal(0)
                 player.c.total = new Decimal(0)
-                player.a.inCh2Time = 0
+                player.a.inChTime = 0
+                player.dm.inChTime = 0
             },
             canComplete: function() {return player.points.gte(1e52)},
-            unlocked() {return player.a.challenge2Unlock},
+            unlocked() {return player.a.ch2Unlocked},
+            rewardEffect: 3
+        },
+        21: {
+            name: "Mental Clarity",
+            challengeDescription: "Purification Power of both types boosts the gain of Mentality instead of Crystals. Weakling Dust gain is drastically decreased but its effect is now multiplicative. Disable the gain of Unstable Dust.",
+            goalDescription: "Reach 1e100 Mentality.",
+            rewardDescription: "Unlocks Virtuous Crystal<sup>3</sup> Purification. ×3 Purified VC<sup>1</sup> and Purified VC<sup>2</sup> multiplier.",
+            onEnter() {
+                player.c.points = new Decimal(0)
+                player.c.vc = new Decimal(0)
+                player.c.ec = new Decimal(0)
+                player.c.total = new Decimal(0)
+                player.a.inChTime = 0
+                player.dm.inChTime = 0
+            },
+            canComplete: function() {return player.points.gte("1e100")},
+            unlocked() {return player.a.ch3Unlocked},
             rewardEffect: 3
         },
     },
@@ -1935,15 +2152,31 @@ addLayer("a", {
     milestones: {
         0: {
             requirementDescription: "1 Challenge Completion",
-            effectDescription: "Weakling upgrades are no longer reset when entering/exiting challenges.",
+            effectDescription: "Weakling upgrades are no longer reset when entering/exiting Angelic Challenges.",
             done() {return player.a.challengeCompletion >= 1}
-        }
+        },
+        1: {
+            requirementDescription: "2 Challenge Completions",
+            effectDescription: "×1e10 Mentality gain when entering Angelic Challenges.",
+            done() {return player.a.challengeCompletion >= 2}
+        },
+        2: {
+            requirementDescription: "3 Challenge Completions",
+            effectDescription: "×1m Virtuous Crystals gain, and ×1k Evil Crystals gain when entering Angelic challenges.",
+            done() {return player.a.challengeCompletion >= 3}
+        },
+        3: {
+            requirementDescription: "4 Challenge Completions",
+            effectDescription: "The above effects also apply outside of Angelic challenges.",
+            done() {return player.a.challengeCompletion >= 4}
+        },
     },
 
     clickables: {
         11: {
             title: "Buy",
             display() {return "Cost: "+format(tmp.a.vc1Cost)+" VC"},
+            tooltip() {return "Bought: "+formatWhole(player.a.vc1Bought)},
             canClick() {return player.c.vc.gte(tmp.a.vc1Cost)},
             onClick() {
                 player.c.vc = player.c.vc.sub(tmp.a.vc1Cost)
@@ -1969,7 +2202,11 @@ addLayer("a", {
                 return "Locked"
             },
             display() {
-                if(hasChallenge("a",12)) return "Cost: "+format(tmp.a.vc2Cost)+" EC"
+                if(hasChallenge("a",12)) return "Cost: "+format(tmp.a.vc2Cost)+" VC"
+                return ""
+            },
+            tooltip() {
+                if(hasChallenge("a",12)) return "Bought: "+formatWhole(player.a.vc2Bought)
                 return ""
             },
             canClick() {
@@ -1998,17 +2235,37 @@ addLayer("a", {
         },
         13: {
             title() {
+                if(hasChallenge("a",21)) return "Buy"
                 return "Locked"
             },
             display() {
+                if(hasChallenge("a",21)) return "Cost: "+format(tmp.a.vc3Cost)+" VC"
                 return ""
             },
-            canClick: false,
+            tooltip() {
+                if(hasChallenge("a",21)) return "Bought: "+formatWhole(player.a.vc3Bought)
+                return ""
+            },
+            canClick() {
+                if(hasChallenge("a",21)) return player.c.vc.gte(tmp.a.vc3Cost)
+                return false
+            },
+            onClick() {
+                player.c.vc = player.c.vc.sub(tmp.a.vc3Cost)
+                player.a.vc3 = player.a.vc3.add(1)
+                player.a.vc3Bought++
+            },
+            onHold() {
+                player.c.vc = player.c.vc.sub(tmp.a.vc3Cost)
+                player.a.vc3 = player.a.vc3.add(1)
+                player.a.vc3Bought++
+            },
             style: {"min-height": "40px", 'background'() {
                 let color1 = "rgb(18, 187, 41)"
                 let color2 = "rgb(109, 189, 120)"
                 let color3 = "rgb(70, 124, 77)"
                 let color = color3
+                if(hasChallenge("a",21)) color = color2
                 if(tmp.a.clickables[13].canClick) color = color1
                 return color
             }}
@@ -2020,6 +2277,7 @@ addLayer("a", {
             display() {
                 return ""
             },
+            tooltip() {return ""},
             canClick: false,
             style: {"min-height": "40px", 'background'() {
                 let color1 = "rgb(18, 187, 41)"
@@ -2031,16 +2289,24 @@ addLayer("a", {
             }}
         },
     }
-})
+}) // Angelic
 
 addLayer("dm", {
     tabFormat: {
+        Intro: {
+            content: [["infobox","introBox"]]
+        },
         Challenges: {
             content: [
                 ["display-text", function() {
-                    unlockReq = "Next challenge unlocks at <h2>"+format(tmp.dm.challengeUnlockCon)+"</h2> Unstable Dust.<br><br>"
+                    unlockReq = "Next challenge unlocks at <h2>"+format(tmp.dm.challengeUnlockCon)+"</h2> Unstable Dust.<br>"
                     return unlockReq
                 }],
+                ["display-text", function() {
+                    additionalText = ""
+                    if(player.dm.ch2Unlocked) additionalText = "For <b>Virtue Eradication</b> and the challenges onwards, your Crystal Shards, total Crystal Shards, VC, and EC will be reset. The 7th effect of VC and EC will be nullified."
+                    return additionalText
+                }],"blank",
                 "challenges","blank","blank",
                 "milestones"
             ]
@@ -2048,10 +2314,12 @@ addLayer("dm", {
         Purification: {
             content: [
                 ["display-text", function() {
-                    return "You have "+colorText("h3",tmp.c.colorec,formatWhole(player.c.ec))+" Virtuous Crystal"+(player.c.ec.eq(1)?"":"s")+". (+"+formatWhole(upgradeEffect("c",41))+"/s)"
+                    return "You have "+colorText("h3",tmp.c.colorec,formatWhole(player.c.ec))+" Evil Crystal"+(player.c.ec.eq(1)?"":"s")+". (+"+formatWhole(upgradeEffect("c",41))+"/s)"
                 }],"blank",
                 ["display-text", function() {
-                    return "You have <h2>"+formatWhole(tmp.dm.eppCount)+"</h2> Evil Purification Power, which translates to <h3>+"+formatWhole(tmp.dm.eppEffect.mul(100))+"%</h3> of extra EC production."
+                    let effectText = "which translates to <h3>+"+formatWhole(tmp.dm.eppEffect.mul(100))+"</h3>% of extra EC production."
+                    if(inChallenge("a",21)) effectText = "which translates to <h3>+"+formatWhole(tmp.dm.eppEffect.mul(100))+"</h3>% of extra Mentality production."
+                    return "You have <h2>"+formatWhole(tmp.dm.eppCount)+"</h2> Evil Purification Power, "+effectText
                 }], "blank",
                 ["row", [
                     ["display-text", function() {
@@ -2082,10 +2350,10 @@ addLayer("dm", {
                     return "<b>Purified<br>Evil<br>Crystal<sup>3</sup></b>"
                     }], ["blank",["25px","30px"]],
                     ["display-text", function() {
-                    return "×"+format(1)
+                    return "×"+format(tmp.dm.ec3Mult)
                     },{'width':'40px','display':'block'}],
                     ["display-text", function() {
-                    return "<b>"+formatWhole(0)+"</b>"
+                    return "<b>"+formatWhole(player.dm.ec3)+"</b>"
                     },{'font-size':'30px','width':'418.69px','display':'block'}],
                     ["clickable",13]
                 ], {'width':'750px','height':'60px', 'background':'rgba(217, 55, 250, 0.2)'}],
@@ -2094,10 +2362,10 @@ addLayer("dm", {
                     return "<b>Purified<br>Evil<br>Crystal<sup>4</sup></b>"
                     }], ["blank",["25px","30px"]],
                     ["display-text", function() {
-                    return "×"+format(1)
+                    return "×"+format(tmp.dm.ec4Mult)
                     },{'width':'40px','display':'block'}],
                     ["display-text", function() {
-                    return "<b>"+formatWhole(0)+"</b>"
+                    return "<b>"+formatWhole(player.dm.ec4)+"</b>"
                     },{'font-size':'30px','width':'418.69px','display':'block'}],
                     ["clickable",14]
                 ], {'width':'750px','height':'60px', 'background':'rgba(217, 55, 250, 0.35)'}],
@@ -2113,7 +2381,9 @@ addLayer("dm", {
         introBox: {
             title: "",
             body() {
-                return ""
+                return "Welcome to the next part of the game! This layer is a continual one dedicated for Evil Crystals! "+
+                "The description are pretty much the same as Angelic so you can read that part once you unlocked it :)<br>"+
+                "<i>(And ironically, these two layers have the same structure, just working with a different type of Crystal)</i>"
             }
         }
     },
@@ -2125,9 +2395,13 @@ addLayer("dm", {
         ec1Bought: 0,
         ec2: new Decimal(0), // Purified EC^2
         ec2Bought: 0,
+        ec3: new Decimal(0), // Purified EC^3
+        ec3Bought: 0,
+        ec4: new Decimal(0), // Purified EC^4
+        ec4Bought: 0,
         epp: new Decimal(0), // Evil Purification Power
         ch2Unlocked: false,
-        inCh2Time: 0
+        inChTime: 0
     }},
     color: "rgb(168, 26, 69)",
     requires: new Decimal(1e15), // Can be a function that takes requirement increases into account
@@ -2142,7 +2416,9 @@ addLayer("dm", {
         if(!player.dm.ch2Unlocked) tmp.dm.challenge2Unlock
         tmp.dm.challengeCount
         if(player.dm.ec2.gte(1)) player.dm.ec1 = player.dm.ec1.add(tmp.dm.ec1Gain.mul(diff))
-        if(inChallenge("dm",12)) player.dm.inCh2Time = player.dm.inCh2Time + diff
+        if(player.dm.ec3.gte(1)) player.dm.ec2 = player.dm.ec2.add(tmp.dm.ec2Gain.mul(diff))
+        if(player.dm.ec4.gte(1)) player.dm.ec3 = player.dm.ec3.add(tmp.dm.ec3Gain.mul(diff))
+        if(inChallenge("dm",12)||inChallenge("dm",21)) player.dm.inChTime = player.dm.inChTime + diff
     },
     row: 1, // Row the layer is in on the tree (0 is the first row)
     layerShown(){return hasMilestone("c",26)},
@@ -2158,18 +2434,19 @@ addLayer("dm", {
     },
 
     challengeCount() {
-        player.dm.challengeCompletion = challengeCompletions("dm",11)+challengeCompletions("dm",12)//+challengeCompletions("dm",21)+challengeCompletions("dm",22)
+        player.dm.challengeCompletion = challengeCompletions("dm",11)+challengeCompletions("dm",12)+challengeCompletions("dm",21)//+challengeCompletions("dm",22)
         return
     },
 
     challengeUnlockCon() {
         let req = new Decimal("1e140")
         if(tmp.dm.challenges[12].unlocked) req = new Decimal("1e240")
+        if(tmp.dm.challenges[21].unlocked) req = new Decimal("1e450")
         return req
     },
 
     challenge2Unlock() {
-        if(player.c.ud.gte("1e140")) player.dm.challenge2Unlock = true
+        if(player.c.ud.gte("1e140")) player.dm.ch2Unlocked = true
         return
     },
 
@@ -2190,14 +2467,38 @@ addLayer("dm", {
         return count
     },
 
+    ec2Gain() { // this only triggers when having more than 1 EC^2
+        let count = player.dm.ec3.mul(tmp.dm.ec3Mult)
+        return count
+    },
+
+    ec3Gain() { // this only triggers when having more than 1 EC^2
+        let count = player.dm.ec4.mul(tmp.dm.ec4Mult)
+        return count
+    },
+
     ec1Mult() {
         let mult = new Decimal(1)
         if(hasChallenge("dm",12)) mult = mult.mul(challengeEffect("dm",12))
         if(hasUpgrade("c",42)) mult = mult.mul(upgradeEffect("c",42))
+        if(hasChallenge("dm",21)) mult = mult.mul(challengeEffect("dm",21))
         return mult
     },
 
     ec2Mult() {
+        let mult = new Decimal(1)
+        if(hasChallenge("dm",21)) mult = mult.mul(challengeEffect("dm",21))
+        if(hasUpgrade("c",43)) mult = mult.mul(upgradeEffect("c",43))
+        return mult
+    },
+
+    ec3Mult() {
+        let mult = new Decimal(1)
+        if(hasUpgrade("c",44)) mult = mult.mul(upgradeEffect("c",44))
+        return mult
+    },
+
+    ec4Mult() {
         let mult = new Decimal(1)
         return mult
     },
@@ -2214,6 +2515,18 @@ addLayer("dm", {
         return cost
     },
 
+    ec3Cost() {
+        let startCost = new Decimal(1e52)
+        let cost = startCost.mul(Decimal.pow(60,player.dm.ec3Bought))
+        return cost
+    },
+
+    ec4Cost() {
+        let startCost = new Decimal("9e999")
+        let cost = startCost.mul(Decimal.pow(360,player.dm.ec4Bought))
+        return cost
+    },
+
     challenges: {
         11: {
             name: "Weakling Amplifier",
@@ -2225,7 +2538,7 @@ addLayer("dm", {
         },
         12: {
             name: "Virtue Eradication",
-            challengeDescription: "Your Crystal Shards, total Crystal Shards, VC, and EC will be reset. Crystal Shards gain is now ^0.5 and disables the gain of VC and its effects. The 7th EC effect and Purified Crystals do nothing.",
+            challengeDescription: "Crystal Shards gain is now ^0.5 and disables the gain of VC and its effects. Purified Crystals do nothing.",
             goalDescription: "Reach 5e31 Weakling Dust.",
             rewardDescription: "Unlocks Evil Crystal<sup>2</sup> Purification. ×3 Purified Evil<br>Crystal<sup>1</sup> multiplier.",
             onEnter() {
@@ -2233,10 +2546,34 @@ addLayer("dm", {
                 player.c.vc = new Decimal(0)
                 player.c.ec = new Decimal(0)
                 player.c.total = new Decimal(0)
-                player.dm.inCh2Time = 0
+                player.a.inChTime = 0
+                player.dm.inChTime = 0
             },
             canComplete: function() {return player.w.points.gte(5e31)},
-            unlocked() {return player.dm.challenge2Unlock},
+            unlocked() {return player.dm.ch2Unlocked},
+            rewardEffect: 3
+        },
+        21: {
+            name: "Chains & Constraints",
+            challengeDescription: "Weakling Dust gain is now squared, but you only have the first two rows of Weakling Upgrades and the 2nd row of Crystal upgrades of each type. (<b>Distillation</b> is also kept)",
+            goalDescription: "Reach 2e90 Weakling Dust.",
+            rewardDescription: "Unlocks Evil Crystal<sup>3</sup> Purification. ×3 Purified EC<sup>1</sup> and Purified EC<sup>2</sup> multiplier.",
+            onEnter() {
+                player.c.points = new Decimal(0)
+                player.c.vc = new Decimal(0)
+                player.c.ec = new Decimal(0)
+                player.c.total = new Decimal(0)
+                player.a.inChTime = 0
+                player.dm.inChTime = 0
+                player.w.upgrades = [11,12,13,14,15,21,22,23,24,25]
+                player.c.upgrades = [21,22,41,42,55,61]
+            },
+            onExit() {
+                player.w.upgrades = [11,12,13,14,15,21,22,23,24,25,31,32,33,34,35]
+                player.c.upgrades = [11,12,13,14,21,22,31,32,33,34,41,42,51,52,53,54,55,61]
+            },
+            canComplete: function() {return player.w.points.gte(2e90)},
+            unlocked() {return player.dm.ch2Unlocked},
             rewardEffect: 3
         },
     },
@@ -2244,15 +2581,31 @@ addLayer("dm", {
     milestones: {
         0: {
             requirementDescription: "1 Challenge Completion",
-            effectDescription: "Weakling upgrades are no longer reset when entering/exiting challenges.",
+            effectDescription: "Weakling upgrades are no longer reset when entering/exiting Demonic Challenges.",
             done() {return player.dm.challengeCompletion >= 1}
-        }
+        },
+        1: {
+            requirementDescription: "2 Challenge Completions",
+            effectDescription: "×2e10 Weakling Dust gain when entering Demonic Challenges.",
+            done() {return player.dm.challengeCompletion >= 2}
+        },
+        2: {
+            requirementDescription: "3 Challenge Completions",
+            effectDescription: "×1m Evil Crystals gain, and ×1k Virtuous Crystals gain when entering Demonic challenges.",
+            done() {return player.dm.challengeCompletion >= 3}
+        },
+        3: {
+            requirementDescription: "4 Challenge Completions",
+            effectDescription: "The above effects also apply outside of Demonic challenges.",
+            done() {return player.dm.challengeCompletion >= 4}
+        },
     },
 
      clickables: {
         11: {
             title: "Buy",
             display() {return "Cost: "+format(tmp.dm.ec1Cost)+" EC"},
+            tooltip() {return "Bought: "+formatWhole(player.dm.ec1Bought)},
             canClick() {return player.c.ec.gte(tmp.dm.ec1Cost)},
             onClick() {
                 player.c.ec = player.c.ec.sub(tmp.dm.ec1Cost)
@@ -2281,6 +2634,10 @@ addLayer("dm", {
                 if(hasChallenge("dm",12)) return "Cost: "+format(tmp.dm.ec2Cost)+" EC"
                 return ""
             },
+            tooltip() {
+                if(hasChallenge("dm",12)) return "Bought: "+formatWhole(player.dm.ec2Bought)
+                return ""
+            },
             canClick() {
                 if(hasChallenge("dm",12)) return player.c.ec.gte(tmp.dm.ec2Cost)
                 return false
@@ -2307,17 +2664,37 @@ addLayer("dm", {
         },
         13: {
             title() {
+                if(hasChallenge("dm",21)) return "Buy"
                 return "Locked"
             },
             display() {
+                if(hasChallenge("dm",21)) return "Cost: "+format(tmp.dm.ec3Cost)+" EC"
                 return ""
             },
-            canClick: false,
+            tooltip() {
+                if(hasChallenge("dm",21)) return "Bought: "+formatWhole(player.dm.ec3Bought)
+                return ""
+            },
+            canClick() {
+                if(hasChallenge("dm",21)) return player.c.ec.gte(tmp.dm.ec3Cost)
+                return false
+            },
+            onClick() {
+                player.c.ec = player.c.ec.sub(tmp.dm.ec3Cost)
+                player.dm.ec3 = player.dm.ec3.add(1)
+                player.dm.ec3Bought++
+            },
+            onHold() {
+                player.c.ec = player.c.ec.sub(tmp.dm.ec3Cost)
+                player.dm.ec3 = player.dm.ec3.add(1)
+                player.dm.ec3Bought++
+            },
             style: {"min-height": "40px", 'background'() {
                 let color1 = "rgb(217, 55, 250)"
                 let color2 = "rgb(225, 151, 240)"
                 let color3 = "rgb(133, 34, 153)"
                 let color = color3
+                if(hasChallenge("dm",21)) color = color2
                 if(tmp.dm.clickables[13].canClick) color = color1
                 return color
             }}
@@ -2340,7 +2717,236 @@ addLayer("dm", {
             }}
         },
     }
-})
+}) // Demonic
+
+addLayer("ach", {
+    name: "Achievements",
+    symbol: "Am",
+    row: "side",
+    color: "yellow",
+    tooltip: "Achievements",
+    achievementPopups: true,
+    startData() { return {
+        unlocked: true,
+    }},
+    tabFormat: [
+        ["display-text", "<h1>Achievements</h1>", {'color':'yellow'}],
+        ["display-text", function() {
+            return "You have <h2 style='color:rgb(235, 234, 142)'>"+player.ach.achievements.length+"/41</h2> achievements so far. "+
+            "They only serve the purpose to track your progress and provide no rewards at all!"
+        }],["blank","30px"],"achievements"
+    ],
+    achievements: {
+        11: {
+            name: "Withering...",
+            tooltip: "Begin the generation of Weakling Dust.",
+            done() {return player.w.unlocked}
+        },
+        12: {
+            name: "Speeding Up!",
+            tooltip: "Have the upgrade <u><b>Weakling Up II</b></u>.",
+            done() {return hasUpgrade("w",12)},
+        },
+        13: {
+            name: "Buyables",
+            tooltip: "Have at least a total of 10 purchases for <u><b>Mentality Strengthen</b></u> and <u><b>Weakling Strengthen</b></u>.",
+            done() {return (getBuyableAmount("w",11).add(getBuyableAmount("w",12)).gte(10))}
+        },
+        14: {
+            name: "Now They Multiply!",
+            tooltip: "Have the upgrade <u><b>Contradiction</b></u>.",
+            done() {return hasUpgrade("w",15)}
+        },
+        15: {
+            name: "First Sign of Inflation",
+            tooltip: "Have the upgrade <u><b>Powerful Weakling</b></u>.",
+            done() {return hasUpgrade("w",24)}
+        },
+        21: {
+            name: "The Mind Complex",
+            tooltip: "Have a Crystal Shard.",
+            done() {return player.c.points.gte(1)}
+        },
+        22: {
+            name: "Dynamic Multiplier!",
+            tooltip: "Have the third Crystal Shard milestone.",
+            done() {return hasMilestone("c",2)}
+        },
+        23: {
+            name: "2nd Type of Dust!",
+            tooltip: "Have the first Unstable Dust milestone.",
+            done() {return hasMilestone("c",20)}
+        },
+        24: {
+            name: "Benefited in Every Run",
+            tooltip: "Have the fifth Crystal Shard milestone.",
+            done() {return hasMilestone("c",20)}
+        },
+        25: {
+            name: "Yet Another Division?",
+            tooltip: "Have the third Unstable Dust milestone.",
+            done() {return hasMilestone("c",22)}
+        },
+        31: {
+            name: "The Fusion of Shards!",
+            tooltip: "Have a Crystal of any type.",
+            done() {return player.c.vc.gte(1)}
+        },
+        32: {
+            name: "The Evil Plan",
+            tooltip: "Have 5 Evil Crystals.",
+            done() {return player.c.ec.gte(5)}
+        },
+        33: {
+            name: "Virtue of Life",
+            tooltip: "Have 5 Virtuous Crystals.",
+            done() {return player.c.vc.gte(5)}
+        },
+        34: {
+            name: "Less Efficient",
+            tooltip: "Have 25 Evil Crystals.",
+            done() {return player.c.ec.gte(25)}
+        },
+        35: {
+            name: "Weakening But on Steroid",
+            tooltip: "Have 30 Virtuous Crystals.",
+            done() {return player.c.vc.gte(30)}
+        },
+        41: {
+            name: "Magnificent",
+            tooltip: "Have either a Virtuous Crystal upgrade or an Evil Crystal upgrade.",
+            done() {return hasUpgrade("c",11)||hasUpgrade("c",31)}
+        },
+        42: {
+            name: "Scroll Down for More Content",
+            tooltip: "Dive deeper into the Crystals upgrade tab and purchase <u><b>Fogging</b></u>.",
+            done() {return hasUpgrade("c",51)}
+        },
+        43: {
+            name: "Mass Produce",
+            tooltip: "Have the upgrade <u><b>Rebellion</b></u>.",
+            done() {return hasUpgrade("c",22)}
+        },
+        44: {
+            name: "Look'a All Those Shiny Stuffs!",
+            tooltip: "Have over 1,000 Crystal Shards.",
+            done() {return (player.c.points.gte(1000))}
+        },
+        45: {
+            name: "Now, Where Are My Crystals?",
+            tooltip: "Have over 50 times more of Crystal Shards than the cost of condensing it.",
+            done() {return (player.c.points.gte(tmp.c.crystalCost.mul(50)))}
+        },
+        51: {
+            name: "Persistent Effect",
+            tooltip: "Have the 7th effect of either VC or EC.",
+            done() {return hasMilestone("c",46)||hasMilestone("c",76)}
+        },
+        52: {
+            name: "Self-Contain",
+            tooltip: "Have the upgrade <u><b>Enchantment</b></u>.",
+            done() {return hasUpgrade("c",13)}
+        },
+        53: {
+            name: "Strong Buff",
+            tooltip: "Have more than 5,000 Virtuous Crystals.",
+            done() {return (player.c.vc.gte(5000))}
+        },
+        54: {
+            name: "Bless or Curse?",
+            tooltip: "Have either the upgrade <u><b>Benediction</b></u> or <u><b>Imprecation</b></u>.",
+            done() {return hasUpgrade("c",14)||hasUpgrade("c",34)}
+        },
+        55: {
+            name: "Transform",
+            tooltip: "Have the upgrade <u><b>Distillation</b></u> and witnessed the change of <u><b>Crystalize</b></u>.",
+            done() {return hasUpgrade("c",55)}
+        },
+        61: {
+            name: "Whoa, We Got More Upgrades?",
+            tooltip: "Unlock the 3rd row of Weakling upgrades.",
+            done() {return hasMilestone("c",46)}
+        },
+        62: {
+            name: "Generational Crystals",
+            tooltip: "Begin the generation of Crystals of any type.",
+            done() {return hasUpgrade("c",21)||hasUpgrade("c",41)}
+        },
+        63: {
+            name: "Hey There, You Can Stop Spamming Now",
+            tooltip: "Begin the generation of Crystal Shards.",
+            done() {return hasUpgrade("c",55)}
+        },
+        64: {
+            name: "Progression Surge",
+            tooltip: "Have the upgrade <u><b>Duality</b></u>.",
+            done() {return hasUpgrade("w",35)}
+        },
+        65: {
+            name: "A Half-Completed Crystal",
+            tooltip: "Unlock the 7th Unstable Dust milestone.",
+            done() {return hasMilestone("c",26)}
+        },
+        71: {
+            name: "The Real AD Reference",
+            tooltip: "Unlocks Crystals Purification of any type.",
+            done() {return hasChallenge("a",11)||hasChallenge("dm",11)}
+        },
+        72: {
+            name: "Evil Monarch",
+            tooltip: "Have over 1e20 Evil Crystals.",
+            done() {return (player.c.ec.gte(1e20))}
+        },
+        73: {
+            name: "It's Time for Another Challenge",
+            tooltip: "Have over 1e140 Unstable Dust.",
+            done() {return (player.c.ud.gte(1e140))}
+        },
+        74: {
+            name: "Side B",
+            tooltip: "Unlock more Crystal upgrades. <i>(they will unlock once you have 5 VC<sup>2</sup> or 5 EC<sup>2</sup>)</i>.",
+            done() {return (player.a.vc2.gte(5)||player.dm.ec2.gte(5))}
+        },
+        75: {
+            name: "All The Investments Are Worth It",
+            tooltip: "Have both the upgrades <u><b>Purity</b></u> and <u><b>Impurity</b></u>.",
+            done() {return hasUpgrade("c",22)&&hasUpgrade("c",42)}
+        },
+        81: {
+            name: "That Was Quite A Wait Huh?",
+            tooltip: "Have over 1e240 Unstable Dust.",
+            done() {return (player.c.ud.gte(1e240))}
+        },
+        82: {
+            name: "3-Dimensional Tuna",
+            tooltip: "Have either a VC<sup>3</sup> or EC<sup>3</sup>.",
+            done() {return (player.a.vc3.gte(1)||player.dm.ec3.gte(1))}
+        },
+        83: {
+            name: "The Number We All Know And Love",
+            tooltip: "Have more than 1.80e308 Unstable Dust.",
+            done() {return (player.c.ud.gte(Decimal.pow(2,1024)))}
+        },
+        84: {
+            name: "The Art of Copy+Paste",
+            tooltip: "Have both the upgrades <u><b>Purity<sup>2</sup></b></u> and <u><b>Impurity<sup>2</sup></b></u>.",
+            done() {return hasUpgrade("c",23)&&hasUpgrade("c",43)}
+        },
+        85: {
+            name: "Exploitation to the MAX",
+            tooltip: "Have more than 1e100 Mentality outside of all challenges and without buying any <u><b>Weakling Strengthen</b></u>.",
+            done() {
+                let inAnyChallenge = inChallenge("a",11)||inChallenge("a",12)||inChallenge("a",21)||inChallenge("dm",11)||inChallenge("dm",12)||inChallenge("dm",21)
+                return player.points.gte(1e100)&&getBuyableAmount("w",12).eq(0)&&!inAnyChallenge
+            }
+        },
+        91: {
+            name: "Eruption",
+            tooltip: "Have the upgrade <u><b>Dissolution</b></u>.",
+            done() {return hasUpgrade("c",62)}
+        },
+    }
+}) // Achievements
 
 addLayer("d", {
     name: "Dev Zone", // This is optional, only used in a few places, If absent it just uses the layer id.
@@ -2374,7 +2980,7 @@ addLayer("d", {
             "blank",
             ["display-text",function() {
                 return "Currently, the test value is:"+
-                "<br><h1 style=\"color: rgb(62, 194, 211);\"> "+format(1)+" </h1>"
+                "<br><h1 style=\"color: rgb(62, 194, 211);\"> It has been "+formatWhole(27)+" mins since last upgrade</h1>"
             }],
             "blank",
             "milestones"
@@ -2475,4 +3081,5 @@ addLayer("d", {
             done() {return false}
         }
     }
-})
+}) // Secret Option :)
+// 3000 lines!

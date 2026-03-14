@@ -12,11 +12,17 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.8.5",
-	name: "Crystals Purification",
+	num: "0.8.6",
+	name: "✦ Achievements ✦",
 }
 
 let changelog = `<h1>Changelog:</h1><br><br>
+	<h3>v0.8.6 - 2026/3/14</h3><br>
+		<b style='color:yellow'>✦ Achievements ✦</b><br>
+		Decreased the price for Crystal Upgrade <b>Distillation</b><br>
+		Added 3rd Angelic Challenge and Demonic Challenge<br>
+		More Purified Crystal tier and more fun!
+		<div style='color:yellow'>✦ Added the brand new achievement system ✦</div><br>
 	<h3>v0.8.5 - 2026/3/11</h3><br>
 		<b>Crystals Purification</b><br>
 		Implemented the Purification Tab (it's fancy and <i>AD-like</i>)<br>
@@ -75,7 +81,7 @@ let winText = `Congratulations! You have endured the mental challenge the game h
 var displayThings = [
 	function() {
 		//let num = new Decimal("1f5")
-		return "Current Endgame: Try to find it out yourself :)"
+		return "Current endgame: Have the final achievement <b>Eruption</b>!"
 		//return num	
 	}
 ]
@@ -83,7 +89,7 @@ var displayThings = [
 // Determines when the game "ends"
 function isEndgame() {
 	//return player.points.gte(new Decimal("ee280000000"))
-	return (player.c.ud.gte("1e240"))
+	return (hasAchievement("ach",91))
 }
 
 
@@ -109,7 +115,7 @@ function getPointGen() {
 	if(inChallenge("dm",11)) initialGain = new Decimal(1)
 	let gain = initialGain
 	gain = gain.mul(buyableEffect("w",11))
-	if(player.w.unlocked) gain = gain.div(tmp.w.effect)
+	if(player.w.unlocked&&!inChallenge("a",21)) gain = gain.div(tmp.w.effect)
 	if(hasUpgrade("w",14)) gain = gain.mul(5)
 	if(hasUpgrade("w",15)) gain = gain.mul(upgradeEffect("w",15))
 	if(hasUpgrade("w",23)) gain = gain.mul(upgradeEffect("w",23))
@@ -120,6 +126,9 @@ function getPointGen() {
 	if(hasMilestone("c",22) & player.c.ud.gte(1e6)) gain = gain.div(player.c.ude.pow(0.4))
 	if(hasMilestone("c",43)) gain = gain.mul(tmp.c.vcToMentality)
 	if(hasChallenge("a",11)) gain = gain.pow(challengeEffect("a",11))
+	if((hasMilestone("a",1)&&(inChallenge("a",11)||inChallenge("a",12)||inChallenge("a",21)))||hasMilestone("a",3)) gain = gain.mul(1e10)
+	if(inChallenge("a",21)) gain = gain.mul(tmp.a.vppEffect.add(1)).mul(tmp.dm.eppEffect.add(1)).mul(tmp.w.effect)
+	if(inChallenge("a",21)&&player.a.inChTime < 0.5) gain = new Decimal(0)
 	
 	/* softcap1: 1e7 Mentality gain (not so useful for now tbh)
 	let sftcap1 = new Decimal(1e7)
@@ -383,7 +392,17 @@ function totalVCCalc() {
 	if(player.a.vc2Bought > 0)
 		for(let count = 0; count < player.a.vc2Bought; count++) {
 			let baseCost = new Decimal(2.5e25)
-			player.c.totalvc = player.c.totalvc.add(baseCost.mul(Decimal.pow(3,count)))
+			player.c.totalvc = player.c.totalvc.add(baseCost.mul(Decimal.pow(12,count)))
+		}
+	if(player.a.vc3Bought > 0)
+		for(let count = 0; count < player.a.vc3Bought; count++) {
+			let baseCost = new Decimal(7.5e50)
+			player.c.totalvc = player.c.totalvc.add(baseCost.mul(Decimal.pow(60,count)))
+		}
+	if(player.a.vc4Bought > 0)
+		for(let count = 0; count < player.a.vc4Bought; count++) {
+			let baseCost = new Decimal("9.99e999")
+			player.c.totalvc = player.c.totalvc.add(baseCost.mul(Decimal.pow(360,count)))
 		}
 	return
 }
@@ -408,6 +427,16 @@ function totalECCalc() {
 		for(let count = 0; count < player.dm.ec2Bought; count++) {
 			let baseCost = new Decimal(1e26)
 			player.c.totalec = player.c.totalec.add(baseCost.mul(Decimal.pow(12,count)))
+		}
+	if(player.dm.ec3Bought > 0)
+		for(let count = 0; count < player.dm.ec3Bought; count++) {
+			let baseCost = new Decimal(1e52)
+			player.c.totalec = player.c.totalec.add(baseCost.mul(Decimal.pow(60,count)))
+		}
+	if(player.dm.ec4Bought > 0)
+		for(let count = 0; count < player.dm.ec2Bought; count++) {
+			let baseCost = new Decimal("9.99e999")
+			player.c.totalec = player.c.totalec.add(baseCost.mul(Decimal.pow(360,count)))
 		}
 	return
 }
