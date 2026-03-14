@@ -2825,7 +2825,7 @@ addLayer("ach", {
         43: {
             name: "Mass Produce",
             tooltip: "Have the upgrade <u><b>Rebellion</b></u>.",
-            done() {return hasUpgrade("c",22)}
+            done() {return hasUpgrade("c",12)}
         },
         44: {
             name: "Look'a All Those Shiny Stuffs!",
