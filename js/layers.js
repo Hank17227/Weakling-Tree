@@ -2401,6 +2401,7 @@ addLayer("dm", {
         ec4Bought: 0,
         epp: new Decimal(0), // Evil Purification Power
         ch2Unlocked: false,
+        ch3Unlocked: false,
         inChTime: 0
     }},
     color: "rgb(168, 26, 69)",
@@ -2414,6 +2415,7 @@ addLayer("dm", {
     update(diff) {
         if(!player.dm.unlocked) tmp.dm.instantUnlockLayer
         if(!player.dm.ch2Unlocked) tmp.dm.challenge2Unlock
+        if(!player.dm.ch3Unlocked) tmp.dm.challenge3Unlock
         tmp.dm.challengeCount
         if(player.dm.ec2.gte(1)) player.dm.ec1 = player.dm.ec1.add(tmp.dm.ec1Gain.mul(diff))
         if(player.dm.ec3.gte(1)) player.dm.ec2 = player.dm.ec2.add(tmp.dm.ec2Gain.mul(diff))
@@ -2447,6 +2449,11 @@ addLayer("dm", {
 
     challenge2Unlock() {
         if(player.c.ud.gte("1e140")) player.dm.ch2Unlocked = true
+        return
+    },
+
+    challenge3Unlock() {
+        if(player.c.ud.gte("1e240")) player.dm.ch3Unlocked = true
         return
     },
 
@@ -2573,7 +2580,7 @@ addLayer("dm", {
                 player.c.upgrades = [11,12,13,14,21,22,31,32,33,34,41,42,51,52,53,54,55,61]
             },
             canComplete: function() {return player.w.points.gte(2e90)},
-            unlocked() {return player.dm.ch2Unlocked},
+            unlocked() {return player.dm.ch3Unlocked},
             rewardEffect: 3
         },
     },
