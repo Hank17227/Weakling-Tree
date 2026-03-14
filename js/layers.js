@@ -2780,7 +2780,7 @@ addLayer("ach", {
         24: {
             name: "Benefited in Every Run",
             tooltip: "Have the fifth Crystal Shard milestone.",
-            done() {return hasMilestone("c",20)}
+            done() {return hasMilestone("c",4)}
         },
         25: {
             name: "Yet Another Division?",
@@ -2825,7 +2825,7 @@ addLayer("ach", {
         43: {
             name: "Mass Produce",
             tooltip: "Have the upgrade <u><b>Rebellion</b></u>.",
-            done() {return hasUpgrade("c",12)}
+            done() {return hasUpgrade("c",32)}
         },
         44: {
             name: "Look'a All Those Shiny Stuffs!",
@@ -2865,7 +2865,7 @@ addLayer("ach", {
         61: {
             name: "Whoa, We Got More Upgrades?",
             tooltip: "Unlock the 3rd row of Weakling upgrades.",
-            done() {return hasMilestone("c",46)}
+            done() {return hasMilestone("c",25)}
         },
         62: {
             name: "Generational Crystals",
