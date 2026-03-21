@@ -11,7 +11,7 @@ addLayer("ach", {
     tabFormat: [
         ["display-text", "<h1>Achievements</h1>", {'color':'yellow'}],
         ["display-text", function() {
-            return "You have <h2 style='color:rgb(235, 234, 142)'>"+player.ach.achievements.length+"/41</h2> achievements so far. "+
+            return "You have <h2 style='color:rgb(235, 234, 142)'>"+player.ach.achievements.length+"/42</h2> achievements so far. "+
             "They only serve the purpose to track your progress and provide no rewards at all!"
         }],["blank","30px"],"achievements"
     ],
