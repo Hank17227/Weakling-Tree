@@ -366,7 +366,7 @@ addLayer("c", {
             ]
         },
         "The Demon": {
-            unlocked() {return hasMilestone("c",7)},
+            unlocked() {return hasMilestone("c",7)&&inChallenge("dm",22)},
             content: [["infobox","demonLore0"],["infobox","demonLore1"]],
             buttonStyle: {'background':'rgba(206, 5, 5, 0.75)'}
         }
