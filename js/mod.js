@@ -16,7 +16,7 @@ let modInfo = {
 // Set your version in num and name
 let VERSION = {
 	num: "0.8.7",
-	name: "Final AC & DC",
+	name: "layers.js Separation",
 }
 
 let changelog = `<h1>Changelog:</h1><br><br>
