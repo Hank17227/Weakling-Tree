@@ -72,12 +72,17 @@ function vcEcMani(vc, ec) { //unused because there's more advanced way to contro
 }
 
 function crystalTypeDecider() {
-	if(player.c.vc.add(player.c.ec).eq(0)&&!(hasMilestone("c",45)||hasMilestone("c",75))) {
+	if(player.c.vc.add(player.c.ec).eq(0)&&!(hasMilestone("c",45)||hasMilestone("c",75))&&!inChallenge("dm",22)) {
 		player.c.vc = player.c.vc.add(1)
+		return
+	}
+    if(player.c.vc.add(player.c.ec).eq(0)&&!(hasMilestone("c",56)||hasMilestone("c",88))&&inChallenge("dm",22)) {
+		player.c.ec = player.c.ec.add(1)
 		return
 	}
 	let rng = Math.floor(Math.random()*100)
 	let thshold = 50
+    if(inChallenge("dm",22)) thshold = 80
 	if(hasUpgrade("c",21)) thshold = 101 // always gets ec
 	if(hasUpgrade("c",41)) thshold = -1 // always gets vc
 	if(rng >= thshold) player.c.vc = player.c.vc.add(tmp.c.vcGain)
@@ -127,7 +132,7 @@ function totalVCCalc() {
 		}
 	if(player.a.vc4Bought > 0)
 		for(let count = 0; count < player.a.vc4Bought; count++) {
-			let baseCost = new Decimal("9.99e999")
+			let baseCost = new Decimal(1e130)
 			player.c.totalvc = player.c.totalvc.add(baseCost.mul(Decimal.pow(360,count)))
 		}
 	return
@@ -160,9 +165,9 @@ function totalECCalc() {
 			player.c.totalec = player.c.totalec.add(baseCost.mul(Decimal.pow(60,count)))
 		}
 	if(player.dm.ec4Bought > 0)
-		for(let count = 0; count < player.dm.ec2Bought; count++) {
-			let baseCost = new Decimal("9.99e999")
-			player.c.totalec = player.c.totalec.add(baseCost.mul(Decimal.pow(360,count)))
+		for(let count = 0; count < player.dm.ec4Bought; count++) {
+			let baseCost = new Decimal(1e130)
+			player.c.totalec = player.c.totalec.add(baseCost.mul(Decimal.pow(3600,count)))
 		}
 	return
 }
@@ -177,24 +182,32 @@ addLayer("c", {
                 return mainText
             }], ["blank","8px"],
             ["display-text", function() {
-                let mainText = ""
-                if(inChallenge("dm",22)) mainText = "You have made a total of "+layerText("h2","c",formatWhole(player.c.resetCount))+" reset"+(player.c.resetCount.eq(1)?"":"s")+" in this layer.<br><br>"
-                return mainText
+                let subText = ""
+                if(inChallenge("dm",22)) subText = "You have made a total of "+layerText("h2","c",formatWhole(player.c.resetCount))+" reset"+(player.c.resetCount.eq(1)?"":"s")+" in this layer.<br><br>"
+                return subText
             }],
             ["display-text", function() {
                 let gainText = ""
-                let csBaseGain = (player.w.points.gte(2e10)?player.w.points.div(2e10).pow(0.07):new Decimal(0))
-                if(inChallenge("a",12)||inChallenge("dm",12)) csBaseGain = player.w.points.div(2e10).pow(0.035)
-                if(hasUpgrade("c",55)) gainText = "You are gaining "+colorText("b",tmp.c.color,format(csBaseGain.mul(tmp.c.gainMult).div(2)))+" Crystal Shards per second.<br><br>"
+                let csBaseGain = (player.w.points.gte(tmp.c.requires)?player.w.points.div(tmp.c.requires).pow(tmp.c.exponent):new Decimal(0))
+                if(hasUpgrade("c",55)||hasUpgrade("c",91)) gainText = "You are gaining "+colorText("b",tmp.c.color,formatWhole(csBaseGain.mul(tmp.c.gainMult).floor().div(2)))+" Crystal Shards per second.<br><br>"
                 return gainText
             }],
             "prestige-button",
             "blank",
             ["display-text",
                 function() {
-                return "You have <h2><b>"+format(player.c.ud)+"</b></h2> Unstable Dust, "+
+                let text = "You have <h2><b>"+format(player.c.ud)+"</b></h2> Unstable Dust, "+
                 "which are dividing "+layerText("b","w","Weakling Dust")+" gain by <h3><b>"+format(player.c.ude)+"</b></h3>"+
-                ((hasMilestone("c",22)&player.c.ud.gte(1e6))?tmp.c.udEffect2Desc:".")
+                ((hasMilestone("c",22)&&player.c.ud.gte(1e6)&&!inChallenge("dm",22))?tmp.c.udEffect2Desc:".")
+                if(hasMilestone("c",22)&&inChallenge("dm",22)) text = "You have <h2><b>"+format(player.c.ud)+"</b></h2> Unstable Dust, "+
+                "which are multiplying "+layerText("b","w","Weakling Dust")+" gain by <h3><b>"+format(player.c.ude)+"</b>.</h3>"
+                return text
+            }],
+            ["display-text",
+                function() {
+                let text = "Starting from 1.00e500 Unstable Dust, its effects will drastically increase to ^2!"
+                if(player.c.ud.lt("1e500")) text = ""
+                return text
             }],
             ["blank","10px"],
             ["display-text", function() {
@@ -212,13 +225,18 @@ addLayer("c", {
             ["display-text", function() {
                 let mainText = "You have "+layerText("h2","c",formatWhole(player.c.points))+" Crystal Shard"+(player.c.points.eq(1)?"":"s")+"<br><br>"
                 if(hasUpgrade("c",55)) mainText = "You have "+layerText("h2","c",formatWhole(player.c.points))+" Crystal Shards, which multiplies the base of Weakling Dust by "+layerText("h2","c",formatWhole(tmp.c.effect))+".<br>"
+                if(inChallenge("dm",22)) mainText = "You have "+layerText("h2","c",formatWhole(player.c.points))+" Crystal Shard"+(player.c.points.eq(1)?"":"s")+"<br>"
                 return mainText
+            }], ["blank","8px"],
+            ["display-text", function() {
+                let subText = ""
+                if(hasMilestone("c",8)) subText = "You have had the deal with The Demon "+layerText("h2","c",formatWhole(player.c.dealCount))+" time"+(player.c.dealCount.eq(1)?"":"s")+".<br><br>"
+                return subText
             }],
             ["display-text", function() {
                 let gainText = ""
-                let csBaseGain = (player.w.points.gte(2e10)?player.w.points.div(2e10).pow(0.07):new Decimal(0))
-                if(inChallenge("a",12)||inChallenge("dm",12)) csBaseGain = player.w.points.div(2e10).pow(0.035)
-                if(hasUpgrade("c",55)) gainText = "You are gaining "+colorText("b",tmp.c.color,format(csBaseGain.mul(tmp.c.gainMult).div(2)))+" Crystal Shards per second.<br><br>"
+                let csBaseGain = (player.w.points.gte(tmp.c.requires)?player.w.points.div(tmp.c.requires).pow(tmp.c.exponent):new Decimal(0))
+                if(hasUpgrade("c",55)||hasUpgrade("c",91)) gainText = "You are gaining "+colorText("b",tmp.c.color,formatWhole(csBaseGain.mul(tmp.c.gainMult).floor().div(2)))+" Crystal Shards per second.<br><br>"
                 return gainText
             }],
             ["clickables",[1]],
@@ -273,10 +291,10 @@ addLayer("c", {
                             if(hasMilestone("c",48)) stat = vcEffectsList(new Decimal(3),new Decimal(9),true)
                         }
                         if(inChallenge("dm",22)) {
-                            let start = 50, end = 57, offset = 1
+                            let start = 50, end = 58, offset = 1
                             for(let id = start; id <= end; id++)
                                 if(hasMilestone("c",id)) stat = vcEffectsListDC22(new Decimal(offset),new Decimal(id-start+offset))
-                            if(hasMilestone("c",58)) stat = vcEffectsListDC22(new Decimal(1),new Decimal(9),true)
+                            if(hasMilestone("c",59)) stat = vcEffectsListDC22(new Decimal(1),new Decimal(10),true)
                         }
                         return stat
                     }]
@@ -289,7 +307,8 @@ addLayer("c", {
                     let currencyDisplay = colorText("h2",tmp.c.colorec,formatWhole(player.c.ec))
                     let addText = "" // additional text
                     if(hasUpgrade("c",31)) addText = "<br>(Multiplier: ×"+formatWhole(upgradeEffect("c",31))+")"
-                    if(hasUpgrade("c",41)) addText = "<br>You are gaining "+colorText("b",tmp.c.colorec,formatWhole(upgradeEffect("c",41)))+" EC per second."
+                    if(hasUpgrade("c",71)) addText = "<br>(Multiplier: ×"+formatWhole(tmp.c.ecGain.floor())+")"
+                    if(hasUpgrade("c",41)||hasMilestone("c",89)) addText = "<br>You are gaining "+colorText("b",tmp.c.colorec,formatWhole(upgradeEffect("c",41)))+" EC per second."
                     return "You have "+currencyDisplay+" Evil Crystal"+(player.c.ec.eq(1)?"":"s")+"."+
                     "<br>They have the following effects:"+addText
                     }],
@@ -306,10 +325,10 @@ addLayer("c", {
                         }
                         if(inChallenge("dm",22)) {
                             stat = ecEffectsListDC22()
-                            let start = 80, end = 87, offset = 0
+                            let start = 80, end = 88, offset = 0
                             for(let id = start; id <= end; id++)
                                 if(hasMilestone("c",id)) stat = ecEffectsListDC22(new Decimal(offset),new Decimal(id-(start-1)+offset))
-                            if(hasMilestone("c",88)) stat = ecEffectsListDC22(new Decimal(0),new Decimal(9),true)
+                            if(hasMilestone("c",89)) stat = ecEffectsListDC22(new Decimal(0),new Decimal(10),true)
                         }
                         return stat
                     }]
@@ -319,7 +338,7 @@ addLayer("c", {
             ]], ["blank","30px"]
         ]},
         Upgrades: {
-            unlocked() {return hasMilestone("c",45)||hasMilestone("c",75)||inChallenge("dm",22)},
+            unlocked() {return hasMilestone("c",45)||hasMilestone("c",75)||inChallenge("dm",22)||inChallenge("a",22)},
             content: [
                 ["display-text", function() {
                     return "You have condensed "+colorText("h3",tmp.c.color,formatWhole(player.c.total))+" Crystal Shards in total.<br><br>"+
@@ -332,6 +351,7 @@ addLayer("c", {
                     ["blank",["40px","10px"]],
                     ["display-text", function() {
                         if(inChallenge("dm",22)) return colorText("h1","rgba(211, 13, 13, 0.8)","You have been disconnected<br>from the virtue...")
+                        if(inChallenge("a",22)) return colorText("h1","rgba(220, 228, 153, 0.8)","Complete more trials...")
                         if(!hasMilestone("c",45)) return colorText("h1","rgba(18, 187, 40, 0.5)","Nothing here yet...")
                     }],
                     ["upgrades",[1,2]]
@@ -346,10 +366,11 @@ addLayer("c", {
                     ["v-line","250px"],
                     ["blank",["40px","10px"]],
                     ["display-text", function() {
-                        if(!tmp.c.upgrades[31].unlocked) return colorText("h1","rgba(211, 13, 13, 0.8)","Upgrades are gone<br>without a trace...")
-                        if(!hasMilestone("c",75)) return colorText("h1","rgba(217, 55, 250, 0.5)","Nothing here yet...")
+                        if(inChallenge("dm",22)&&!tmp.c.upgrades[71].unlocked) return colorText("h1","rgba(104, 101, 101, 0.8)","Upgrades are gone<br>without a trace...")
+                        if(inChallenge("a",22)) return colorText("h1","rgba(220, 228, 153, 0.5)","The Evil is banished...")
+                        if(!hasMilestone("c",75)&&!inChallenge("dm",22)) return colorText("h1","rgba(217, 55, 250, 0.5)","Nothing here yet...")
                     }],
-                    ["upgrades",[3,4]]
+                    ["upgrades",[3,4,7,8]]
                 ], {'width': '700px', 'height': '300px','background-color': 'rgba(217, 55, 250, 0.2)'}],
                 "blank",
                 ["display-text", function() {
@@ -357,17 +378,18 @@ addLayer("c", {
                 }], "blank",
                 ["row",[
                     ["display-text", function() {
-                        if(inChallenge("dm",22)&&!tmp.c.upgrades[51].unlocked) return colorText("h1","rgba(211, 13, 13, 0.8)","Search around and<br>look for the clue...")
-                        if(!tmp.c.upgrades[51].unlocked&&!tmp.c.upgrades[61].unlocked) return colorText("h1","rgba(209, 31, 31, 0.5)","Nothing here yet...")
+                        if(inChallenge("dm",22)&&!tmp.c.upgrades[91].unlocked) return colorText("h1","rgba(104, 101, 101, 0.8)","Search around and<br>look for the clue...")
+                        if(inChallenge("a",22)) return colorText("h1","rgba(220, 228, 153, 0.8)","And come back here...")
+                        if(!tmp.c.upgrades[51].unlocked&&!tmp.c.upgrades[61].unlocked&&!inChallenge("dm",22)) return colorText("h1","rgba(209, 31, 31, 0.5)","Nothing here yet...")
                     }],
-                    ["upgrades",[5,6]]
+                    ["upgrades",[5,6,9,10]]
                 ], {'width': '700px', 'height': '300px','background-color': 'rgba(209, 31, 31, 0.2)'}],
                 "blank"
             ]
         },
         "The Demon": {
             unlocked() {return hasMilestone("c",7)&&inChallenge("dm",22)},
-            content: [["infobox","demonLore0"],["infobox","demonLore1"]],
+            content: [["infobox","credits"],["infobox","demonLore0"],["infobox","demonLore1"]],
             buttonStyle: {'background':'rgba(206, 5, 5, 0.75)'}
         }
     },
@@ -390,25 +412,16 @@ addLayer("c", {
     infoboxes: {
         introBox: {
             title() {
+                let title = ""
                 if(inChallenge("dm",22)){
-                    if(!hasMilestone("c",7)) return "Nope"
-                    else return "Crystals Revamped"
+                    title = "Nope"
+                    if(hasMilestone("c",7)) title = "A Stable Void"
+                    if(hasMilestone("c",8)) title = "Crystals Revamped"
                 }
-                return "Crystals"
+                return title
             },
             body() {
-                if(inChallenge("dm",22)) 
-                    if(!hasMilestone("c",7))
-                        return `<i>The second you step into here, you immediately feel<br>
-                        a strong presence of spacetime turbulence...<br><br>
-                        It feels as if you'll be torn apart
-                        and consumed by it<br>anytime soon...
-                        Maybe it isn't a good idea to investigate yet...</i>`
-                    else
-                        return `Because you were getting the mandetory trade from The Demon, now the cost of getting a Crystal
-                        starts at 100 Crystal Shards, and the cost will increase by 4% every trade!<br><br>
-                        However, that's not the end of world yet`
-                return `Welcome to the major mechanic of this layer! 
+                let desc = `Welcome to the major mechanic of this layer! 
                 In here, you can finally start to make Crystals using the Crystal Shards you have! 
                 To obtain one of them, you'd need 20 Crystal Shards to do so!<br><br>
                 During this process you may obtain `+colorText("b",tmp.c.colorvc,"Virtuous Crystals")+
@@ -417,20 +430,64 @@ addLayer("c", {
                 Combining a Crystal, regardless of the type, will perform a reset of this layer! You will also gain a `+
                 colorText("b",tmp.c.colorvc,"Virtuous Crystal")+` for your first combination.<br><br>
                 <div style='color: rgb(167, 167, 167)'>(Abbriviations - VC: Virtuous Crystals, EC: Evil Crystals)</div>`
+                if(inChallenge("a",22)) {
+                    desc = `<i>The moment you stepped into here, you were immediately faced<br>
+                        with a barrier that are made from the forcefield...<br><br>
+                        It was so powerful and absolute that you got pushed back
+                        for quite some yards after just touching it just a little...
+                        Maybe it isn't a good idea to investigate yet...</i>`
+                }
+                if(inChallenge("dm",22)) {
+                    desc = `<i>The second you step into here, you immediately feel<br>
+                        a strong presence of spacetime turbulence...<br><br>
+                        It feels as if you'll be torn apart
+                        and consumed by it<br>anytime soon...
+                        Maybe it isn't a good idea to investigate yet...</i>`
+                    if(hasMilestone("c",7))
+                        desc = `The space had stabilized but nothing is here. "What could that presence be and why does it need my Crystal Shards?"
+                        You had this question<br>in mind.<br><br>
+                        But now, knowing that it's useless to think of these question that leads to nowhere,
+                        you decided not to think too much and keep working on what you're familiar with, and to get more
+                        <b style='color:rgb(209, 31, 31)'>Crystal Shards</b> along the way.`
+                    if(hasMilestone("c",8))
+                        desc = `Because you had the deal with The Demon, the cost of getting a Crystal had bumped up to 
+                        <u>100 Crystal Shards</u>, and will steaily increase by 4% every trade!<br><br>
+                        VC/EC also play the entirely different role here, with EC helping your progress and VC do the opposite instead.
+                        But nevertheless, you need their help in order to pro- <i style='color:gray'>escape here</i>!
+                        <br><br>
+                        <div style='color:rgb(230, 109, 204)'>
+                        (The chance of getting a VC/EC is now altered to 20%/80%. Also, you're guaranteed to get EC on your first deal!)</div>`
+                }
+                return desc
             }
+        },
+        credits: {
+            title: "Credits",
+            body: "Special thanks to <b style='color:rgb(166, 205, 207)'>Uchigatana</b> for polishing some of the wordings for the lore!"
         },
         demonLore0: {
             title: "A Stablizing Space",
-            body() {let loreText = `As you gather more and more <b style='color:rgb(209, 31, 31)'>Crystal Shards</b>, 
-            you realized that the spacetime here is stablizing,
-            in fact it happened so quickly that you feel like it was just a bad dream.<br><br>
-            Suddenly, you hear the voice surrounding you, first it was subtle, then it gradually became louder.
-            You feel an intense amount of pressure <br><br>`, unlockText = "<i style='color:gray'>Next lore unlocks at 100 Crystal Shards.</i>"
-            return loreText+unlockText}
+            body() {
+                let loreText = `As you gather more and more <b style='color:rgb(209, 31, 31)'>Crystal Shards</b>, 
+                you realized that the spacetime here is stablizing,
+                in fact it happened so quickly that you feel like what had happened was just a bad dream.<br><br>
+                Suddenly, you felt an intense amount of pressure surrounding you, the aura was so strong that
+                it generated a lot of downforce, forcing you to kneel down at this unknown presence.
+                Even so, out of some reason, you decided to not give in and keep the stance.<br><br>
+                Finally, after a while, that pressure had softened by a lot, a voice immediately followed:<br>
+                <div style='color:rgb(236, 19, 19)'>Interesting, very interesting...
+                The way you did not bow down to very my presence... It's been centuries since anyone dared to attempt that~<br>
+                I see the power within you, your potential, and those Crystal Shards~ You know I like those shiny things right?
+                so bring me more of those shards and I'll see you here again~</div><br>
+                The pressure then quickly disappear followed by that alluring voice, and the space you're in is now nothing but an empty void.`,
+                unlockText = "<br><br><div style='color:gray'>Next piece of story unlocks at 100 Crystal Shards.</div>"
+                if(hasMilestone("c",8)) unlockText = ""
+                return loreText+unlockText
+            }
         },
         demonLore1: {
             title: "The Deal from The Demon",
-            body: `<div style='color:rgb(236, 19, 19)'>
+            body() {let loreText = `<div style='color:rgb(236, 19, 19)'>
             Trials after trials, toutures after tortures, you finally made it here.<br>
             Greetings, I'm the almighty existence in this challenge,<br>the one they call "The Demon".<br><br>
             How do you like my creation so far? Did you enjoy your time here?
@@ -450,6 +507,10 @@ addLayer("c", {
             You have so much potential as one of us~ Now, the time has come for you to
             <b style='color:rgb(160, 17, 17)'>WORK FOR ME ETERNALLY</b><br><br>
             Oh, and one last thing to tell you... the cost of the deal also increases every time you have a trade with me, isn't that nice? ;)</div>`,
+            unlockText = "<br><div style='color:gray'>Next piece of story unlocks at 100 Evil Crystals.</div>"
+            if(hasMilestone("c",88)) unlockText = ""
+            return loreText+unlockText
+            },
             unlocked() {return hasMilestone("c",8)}
         }
     },
@@ -457,6 +518,7 @@ addLayer("c", {
         unlocked: false,
 		points: new Decimal(0),
         resetCount: new Decimal(0),
+        dealCount: new Decimal(0), // The deal you had done with The Demon (DC22 exclusive)
         ud: new Decimal(0), // Unstable Dust (UD)
         ude: new Decimal(0), // UD Effect
         autoStrengthen: false,
@@ -471,8 +533,13 @@ addLayer("c", {
     colorvc: "rgb(18, 187, 41)", // color for Virtuous Crystals
     colorec: "rgb(217, 55, 250)", // color for Evil Crystals
     requires() {
-        if(inChallenge("dm",22)) return Decimal.pow(8,52.5)
-        return new Decimal(2e10)
+        let req = new Decimal(2e10)
+        if(inChallenge("dm",22)){
+            req = Decimal.pow(8,52.5)
+            if(hasMilestone("c",21)) req = req.div(tmp.c.udNerfCSReq).max(2e10)
+            if(hasMilestone("c",23)) req = req.div(tmp.c.resetsToDEReq).max(2e10)
+        }
+        return req
     }, // Can be a function that takes requirement increases into account
     resource: "Crystal Shards", // Name of prestige currency
     resourceSingular: "Crystal Shard",
@@ -493,7 +560,7 @@ addLayer("c", {
 
     passiveGeneration() {
         let gain = new Decimal(0)
-        if(hasUpgrade("c",55)) gain = new Decimal(0.5)
+        if(hasUpgrade("c",55)||hasUpgrade("c",91)) gain = new Decimal(0.5)
         if(inChallenge("a",21)&&player.a.inCh3Time < 0.5) gain = new Decimal(0)
         return gain
     },
@@ -503,7 +570,9 @@ addLayer("c", {
         if(hasUpgrade("c",13)) mult = mult.mul(upgradeEffect("c",13))
         if(hasUpgrade("c",62)) mult = mult.mul(tmp.c.weaklingToCS)
         if(inChallenge("a",12)||inChallenge("dm",12)) mult = mult.pow(0.5)
-        if(inChallenge("dm",22)) mult = mult.pow(0.3)
+        if(inChallenge("dm",22)) {
+            if(hasMilestone("c",82)) mult = mult.mul(tmp.c.ecToCS)
+        }
         return mult
     },
     gainExp() { // Calculate the exponent on main currency from bonuses
@@ -531,8 +600,14 @@ addLayer("c", {
     },
 
     resetsToWSCount() {
-        let count = player.c.resetCount.min(30)
+        let count = player.c.resetCount.min(tmp.c.resetsToWSCountCap)
         return count
+    },
+
+    resetsToWSCountCap() {
+        let cap = new Decimal(30)
+        if(hasUpgrade("c",92)) cap = cap.add(10)
+        return cap
     },
 
     resetsToDE() {
@@ -543,6 +618,7 @@ addLayer("c", {
     resetsToDEReq() {
         let mult = player.c.resetCount.pow(0.4).max(1)
         if(hasMilestone("c",6)) mult = mult.pow(2.4)
+        if(hasMilestone("c",23)) mult = mult.pow(3)
         return mult
     },
 
@@ -555,16 +631,20 @@ addLayer("c", {
     },
 
     udBaseEffect() {
-        let eff = player.c.ud.add(1).pow(0.5)
+        let effectiveUD = player.c.ud
+        let sftcap = new Decimal("1e475")
+        if(hasMilestone("c",27)) effectiveUD = effectiveUD.div(sftcap).pow(2).mul(sftcap)
+        let eff = effectiveUD.add(1).pow(0.5)
         if(hasMilestone("c",23)) eff = eff.pow(1.2)
+        if(hasUpgrade("c",51)) eff = eff.pow(0.9)
+        if(hasUpgrade("w",32)) eff = eff.div(upgradeEffect("w",32)).max(1)
+        if(hasChallenge("dm",11)) eff = eff.pow(challengeEffect("dm",11))
         return eff
     },
 
     udEffect1() {
         let eff = tmp.c.udBaseEffect
-        if(hasUpgrade("c",51)) eff = eff.pow(0.9)
-        if(hasUpgrade("w",32)) eff = eff.div(upgradeEffect("w",32)).max(1)
-        if(hasChallenge("dm",11)) eff = eff.pow(challengeEffect("dm",11))
+        if(hasMilestone("c",22)&&inChallenge("dm",22)) eff = eff.pow(0.5)
         return eff
     },
 
@@ -594,6 +674,17 @@ addLayer("c", {
     udNerfWSCost() {
         let mult = player.c.ud.max(0).pow(0.1).add(1)
         if(hasUpgrade("w",75)) mult = mult.pow(upgradeEffect("w",75))
+        return mult
+    },
+
+    udNerfCSReq() {
+        let mult = player.c.ud.max(0).pow(0.25).add(1)
+        return mult
+    },
+
+    udNerfCrystalCost() {
+        let mult = player.c.ud.max(1).log10().div(10).max(1).pow(10/6)
+        if(hasUpgrade("c",93)) mult = mult.pow(upgradeEffect("c",93))
         return mult
     },
 
@@ -627,11 +718,11 @@ addLayer("c", {
     },
 
     crystalBaseCost() {
-        let base = new Decimal(20)
+        let base = new Decimal(20), rand = Math.random()*900+100
         if(inChallenge("dm",22)) {
-            let rand = Math.random()*900+100
             base = new Decimal(rand)
             if(hasMilestone("c",7)) base = new Decimal(100)
+            if(hasMilestone("c",55)) base = base.add(tmp.c.vcToCostIncrease)
         }
         if(hasMilestone("c",73)) base = base.add(tmp.c.ecToCostIncrease)
         return base
@@ -639,8 +730,10 @@ addLayer("c", {
 
     crystalCost() {
         let cost = tmp.c.crystalBaseCost
-        if(hasUpgrade("c",32)||hasMilestone("c",77)) cost = cost.pow(tmp.c.crystalCostExp).floor()
-        return cost
+        if(player.c.dealCount.gte(1)) cost = cost.mul(Decimal.pow(1.04,player.c.dealCount))
+        if(hasMilestone("c",24)&&inChallenge("dm",22)) cost = cost.div(tmp.c.udNerfCrystalCost)
+        if(hasUpgrade("c",32)||hasMilestone("c",77)) cost = cost.pow(tmp.c.crystalCostExp)
+        return cost.floor()
     },
 
     crystalCostExp() {
@@ -658,8 +751,15 @@ addLayer("c", {
     // EC Session ########################################################################################
     ecGain() {
         let gain = new Decimal(1)
+        if(hasMilestone("c",58)) gain = gain.div(tmp.c.vcToEC)
         if(hasUpgrade("c",31)) gain = gain.mul(upgradeEffect("c",31))
         if(hasUpgrade("c",32)) gain = gain.mul(tmp.c.crystalsQuantity)
+        if(hasUpgrade("c",71)) gain = gain.mul(upgradeEffect("c",71))
+        return gain
+    },
+
+    ecGainAC22() {
+        let gain = new Decimal(0)
         return gain
     },
 
@@ -732,6 +832,11 @@ addLayer("c", {
         return gain
     },
 
+    vcGainAC22() {
+        let gain = new Decimal(0)
+        return gain
+    },
+
     vcGainDC22() {
         let gain = new Decimal(0)
         return gain
@@ -787,12 +892,91 @@ addLayer("c", {
         return mult
     },
 
-    /*test() {
-        let a = new Decimal(crystalTypeDecider())
-        return a
-    },*/
+    // VC Session (DC22) ########################################################################################
+    vcToAEBase() { // Effect 4 in DC22
+        let effectiveVC = player.c.vc
+        if(hasMilestone("c",46)) effectiveVC = effectiveVC.add(tmp.c.vcToEffectiveVC)
+        let mult = effectiveVC.mul(1.25).pow(0.85).max(1)
+        return mult
+    },
 
+    vcToECEffects() { // Effect 5 in DC22
+        let effectiveVC = player.c.vc
+        if(hasMilestone("c",46)) effectiveVC = effectiveVC.add(tmp.c.vcToEffectiveVC)
+        let mult = effectiveVC.div(10).max(1).pow(0.25).mul(1.25)
+        return mult
+    },
 
+    vcToCostIncrease() { // Effect 6 in DC22
+        let effectiveVC = player.c.vc
+        if(hasMilestone("c",46)) effectiveVC = effectiveVC.add(tmp.c.vcToEffectiveVC)
+        let mult = effectiveVC.sub(14).mul(3).max(0)
+        return mult
+    },
+
+    vcToAEEffect() { // Effect 8 in DC22
+        let effectiveVC = player.c.vc
+        if(hasMilestone("c",46)) effectiveVC = effectiveVC.add(tmp.c.vcToEffectiveVC)
+        let mult = effectiveVC.pow(0.6).div(1.8).max(1)
+        return mult
+    },
+
+    vcToEC() { // Effect 9 in DC22
+        let effectiveVC = player.c.vc
+        if(hasMilestone("c",46)) effectiveVC = effectiveVC.add(tmp.c.vcToEffectiveVC)
+        let mult = effectiveVC.pow(0.3).mul(1.1).max(1)
+        return mult
+    },
+
+    // EC Session (DC22) ########################################################################################
+    bulkBuyCount() { // Effect 1 in DC22
+        let bulk = 5
+        if(hasMilestone("c",85)) bulk = bulk+parseInt(tmp.c.ecToBulkCount)
+        return bulk
+    },
+
+    ecToCS() { // Effect 3 in DC22
+        let effectiveEC = player.c.ec
+        if(hasMilestone("c",76)) effectiveEC = effectiveEC.add(tmp.c.ecToEffectiveEC)
+        let mult = effectiveEC.add(1).pow(1/3).max(1)
+        if(hasMilestone("c",54)) mult = mult.div(tmp.c.vcToECEffects).max(1)
+        if(hasUpgrade("c",72)) mult = mult.pow(upgradeEffect("c",72))
+        return mult
+    },
+
+    ecToDE() { // Effect 4 in DC22
+        let effectiveEC = player.c.ec
+        if(hasMilestone("c",76)) effectiveEC = effectiveEC.add(tmp.c.ecToEffectiveEC)
+        let mult = effectiveEC.add(1).pow(1.25).mul(1.8).max(1)
+        if(hasMilestone("c",54)) mult = mult.div(tmp.c.vcToECEffects).max(1)
+        if(hasUpgrade("c",72)) mult = mult.pow(upgradeEffect("c",72))
+        return mult
+    },
+
+    ecToWeakling() { // Effect 5 in DC22
+        let effectiveEC = player.c.ec
+        if(hasMilestone("c",76)) effectiveEC = effectiveEC.add(tmp.c.ecToEffectiveEC)
+        let mult = effectiveEC.mul(1.25).pow(1.75).mul(25).max(1)
+        if(hasMilestone("c",54)) mult = mult.div(tmp.c.vcToECEffects).max(1)
+        if(hasUpgrade("c",72)) mult = mult.pow(upgradeEffect("c",72))
+        return mult
+    },
+
+    ecToBulkCount() { // Effect 6 in DC22
+        let effectiveEC = player.c.ec
+        if(hasMilestone("c",76)) effectiveEC = effectiveEC.add(tmp.c.ecToEffectiveEC)
+        let addedBulk = effectiveEC.sub(18).max(0).div(2).floor().min(20)
+        return addedBulk
+    },
+
+    ecToWSBaseMult() { // Effect 8 in DC22
+        let effectiveEC = player.c.ec
+        if(hasMilestone("c",76)) effectiveEC = effectiveEC.add(tmp.c.ecToEffectiveEC)
+        let addedMult = effectiveEC.sub(55).div(5).floor().max(0).mul(0.02).min(1.52)
+        return addedMult
+    },
+
+    // ############################################################################################################
 
     update(diff) {
         player.c.ude = tmp.c.udEffect1
@@ -803,8 +987,9 @@ addLayer("c", {
         if(inChallenge("dm",12)&&player.dm.inChTime > 0.5) player.c.ec = player.c.ec.add(upgradeEffect("c",41).mul(diff))
         if((inChallenge("a",21)||inChallenge("a",22)||inChallenge("dm",21)||inChallenge("dm",22))&&(player.a.inChTime > 0.5||player.dm.inChTime > 0.5)) {
             if(hasUpgrade("c",21)) player.c.vc = player.c.vc.add(upgradeEffect("c",21).mul(diff))
-            if(hasUpgrade("c",41)) player.c.ec = player.c.ec.add(upgradeEffect("c",41).mul(diff))
+            if(hasUpgrade("c",41)||hasMilestone("c",89)) player.c.ec = player.c.ec.add(upgradeEffect("c",41).mul(diff))
         }
+        if(hasUpgrade("c",91)) player.c.resetCount = player.c.resetCount.add(upgradeEffect("c",91).mul(diff))
     },
 
     row: 1, // Row the layer is in on the tree (0 is the first row)
@@ -823,7 +1008,7 @@ addLayer("c", {
     resetsNothing() {return hasUpgrade("c",54)},
 
     canReset() {
-        if(inChallenge("dm",22)) return false
+        if(inChallenge("dm",22)||inChallenge("a",22)) return false
         return (!hasUpgrade("c",55)&&player.w.points.gte(2e10))
     },
     
@@ -859,7 +1044,7 @@ addLayer("c", {
                 let descText = "<b>Mentality Strengthen</b> boosts Weakling Dust gain.<br>"
                 let effText = "Currently: ×"+format(tmp.c.mwConvert)+"."
                 if(inChallenge("dm",22)) {
-                    descText = "Gain a free purchase of <b>Weakling Strengthen</b> for every<br>Crystal Shards reset, up to 30 of them.<br>"
+                    descText = "Gain a free purchase of <b>Weakling Strengthen</b> for every<br>Crystal Shards reset, up to "+formatWhole(tmp.c.resetsToWSCountCap)+" of them.<br>"
                     effText = "Currently: +"+formatWhole(tmp.c.resetsToWSCount)+"."
                 }
                 return descText+effText
@@ -915,6 +1100,10 @@ addLayer("c", {
                 if(inChallenge("dm",22)) {
                     desc = "Divides the requirement of Demonic Essence to perform a reset<br>based on Crystal Shards resets.<br>"
                     effText = "Currently: /"+format(tmp.c.resetsToDEReq)+"."
+                    if(hasMilestone("c",23)) {
+                        desc = "Divides the requirement of Weakling Dust to perform a reset<br>based on Crystal Shards resets.<br>"
+                        effText = "Currently: /"+format(tmp.c.resetsToDEReq)+"."
+                    }
                 }
                 return desc+effText
             },
@@ -988,7 +1177,7 @@ addLayer("c", {
                 return desc+effText
             },
             done() {
-                if(inChallenge("dm",22)) return player.c.resetCount.gte(100)
+                if(inChallenge("dm",22)) return player.c.points.gte(100)
                 return false
             },
             unlocked() {
@@ -1002,116 +1191,185 @@ addLayer("c", {
             done() {return player.c.points.gte(20)},
         },
         20: {
-            requirementDescription: "100 Unstable Dust",
-            effectDescription() {
-                return "Alleviates the Weakling Dust effect based on Unstable Dust.<br>"+
-                "Currently: /"+format(tmp.c.udNerfWeaklingEffect)+"."
+            requirementDescription() {
+                if(inChallenge("dm",22)) return "5e9 Unstable Dust"
+                return "100 Unstable Dust"
             },
-            done() {return player.c.ud.gte(100)&&!inChallenge("dm",22)},
-            unlocked() {return !inChallenge("dm",22)}
+            effectDescription() {
+                let descText = "Alleviates the Weakling Dust effect based on Unstable Dust.<br>"
+                let effText = "Currently: /"+format(tmp.c.udNerfWeaklingEffect)+"."
+                if(inChallenge("dm",22)) {
+                    descText = "<b>Weakling Strengthen</b> is slightly cheaper based on Unstable Dust.<br>"
+                    effText = "Currently: /"+format(tmp.c.udNerfWSCost)+"."
+                    if(hasUpgrade("w",75)) descText = "<b>Weakling Strengthen</b> is cheaper based on Unstable Dust.<br>"
+                }
+                return descText+effText
+            },
+            done() {
+                if(inChallenge("dm",22)) return player.c.ud.gte(5e9)
+                return player.c.ud.gte(100)&&!inChallenge("dm",22)&&!inChallenge("a",22)
+            },
+            unlocked() {
+                if(inChallenge("a",22)) return false
+                return true
+            }
         },
         21: {
             requirementDescription() {
-                if(inChallenge("dm",22)) return "5e9 Unstable Dust"
+                if(inChallenge("dm",22)) return "1e32 Unstable Dust"
                 return "50,000 Unstable Dust"
             },
             effectDescription() {
                 let descText = "<b>Weakling Strengthen</b> is slightly cheaper based on Unstable Dust.<br>"
-                if(hasUpgrade("w",75)) descText = "<b>Weakling Strengthen</b> is cheaper based on Unstable Dust.<br>"
-                return descText+
-                "Currently: /"+format(tmp.c.udNerfWSCost)+"."
+                let effText = "Currently: /"+format(tmp.c.udNerfWSCost)+"."
+                if(inChallenge("dm",22)) {
+                    descText = "Divides the requirement of getting Crystal Shards based on Unstable Dust.<br>"
+                    effText = "Currently: /"+format(tmp.c.udNerfCSReq)+"."
+                }
+                return descText+effText
             },
             done() {
-                if(inChallenge("dm",22)) return player.c.ud.gte(5e9)
-                return player.c.ud.gte(50000)
+                if(inChallenge("dm",22)) return player.c.ud.gte(1e32)
+                return player.c.ud.gte(50000)&&!inChallenge("a",22)
             },
+            unlocked() {
+                if(inChallenge("dm",22)) return player.c.ec.gte(1)
+                if(inChallenge("a",22)) return false
+                return true
+            }
         },
         22: {
-            requirementDescription: "1,000,000 Unstable Dust",
-            effectDescription() {
-                return "Adds the 2nd effect to Unstable Dust.<br><i>this only applies when exceeding 1m Unstable Dust.</i>"
+            requirementDescription() {
+                if(inChallenge("dm",22)) return "2e27 Unstable Dust"
+                return "1,000,000 Unstable Dust"
             },
-            done() {return player.c.ud.gte(1e6)&&!inChallenge("dm",22)},
-            unlocked() {return !inChallenge("dm",22)}
+            effectDescription() {
+                let descText = "Adds the 2nd effect to Unstable Dust.<br><i>this only applies when exceeding 1m Unstable Dust.</i>"
+                let effText = ""
+                if(inChallenge("dm",22)) {
+                    descText = "Unstable Dust now multiplies Weakling Dust instead, but with reduced effect."
+                    effText = ""
+                }
+                return descText+effText
+            },
+            done() {
+                if(inChallenge("dm",22)) return player.c.ud.gte(2e27)&&hasMilestone("c",52)
+                return player.c.ud.gte(1e6)&&!inChallenge("a",22)
+            },
+            unlocked() {
+                if(inChallenge("dm",22)) return hasMilestone("c",52)
+                if(inChallenge("a",22)) return false
+                return true
+            }
         },
         23: {
-            requirementDescription: "1e9 Unstable Dust",
-            effectDescription() {
-                return "Unstable Dust effects ^1.2."
+            requirementDescription() {
+                if(inChallenge("dm",22)) return "3e41 Unstable Dust"
+                return "1e9 Unstable Dust"
             },
-            done() {return player.c.ud.gte(1e9)&&!inChallenge("dm",22)},
-            unlocked() {return hasMilestone("c",71)&&!inChallenge("dm",22)}
+            effectDescription() {
+                let descText = "Unstable Dust effects ^1.2."
+                let effText = ""
+                if(inChallenge("dm",22)) {
+                    descText = "Change the effect of the milestone <b>20 Crystal Shards Resets</b><br>and have it greatly enhanced."
+                    effText = ""
+                }
+                return descText+effText
+            },
+            done() {
+                if(inChallenge("dm",22)) return player.c.ud.gte(3e41)
+                return player.c.ud.gte(1e9)&&!inChallenge("a",22)
+            },
+            unlocked() {
+                if(inChallenge("dm",22)) return hasMilestone("c",86)
+                if(inChallenge("a",22)) return false
+                return hasMilestone("c",71)
+            }
         },
         24: {
             requirementDescription() {
-                if(inChallenge("dm",22)) return "1e40 Unstable Dust"
+                if(inChallenge("dm",22)) return "1e45 Unstable Dust"
                 return "1e12 Unstable Dust"
             },
             effectDescription() {
-                return "Boosts Unstable Dust gain based on the sum of Virtuous Crystals and Evil Crystals.<br>"+
-                "Currently: ×"+format(tmp.c.crystalsToUD)+"."
+                let descText = "Boosts Unstable Dust gain based on the sum of Virtuous Crystals and Evil Crystals.<br>"
+                let effText = "Currently: ×"+format(tmp.c.crystalsToUD)+"."
+                if(inChallenge("dm",22)) {
+                    descText = "Divides the requirement of condensing Crystals based on Unstable Dust.<br>"
+                    effText = "Currently: /"+format(tmp.c.udNerfCrystalCost)+"."
+                }
+                return descText+effText
             },
             done() {
-                if(inChallenge("dm",22)) return player.c.ud.gte(1e40)
-                return player.c.ud.gte(1e12)
+                if(inChallenge("dm",22)) return player.c.ud.gte(1e45)
+                return player.c.ud.gte(1e12)&&!inChallenge("a",22)
             },
             unlocked() {
-                if(!inChallenge("dm",22)) return hasMilestone("c",71)
-                return hasMilestone("c",23)
+                if(inChallenge("dm",22)) return hasMilestone("c",87)
+                if(inChallenge("a",22)) return false
+                return hasMilestone("c",71)
             }
         },
         25: {
             requirementDescription: "1e18 Unstable Dust",
             effectDescription() {
-                if(inChallenge("dm",22)) return "<b style='color:rgba(211, 13, 13, 0.8)'>You shall seek... the place where it was originated...</b>"
+                if(inChallenge("dm",22)) return "<i style='color:rgba(104, 101, 101, 0.8)'>You shall seek... the place where it was originated...</i>"
+                if(inChallenge("a",22)) return "<i style='color:rgba(121, 116, 88, 0.8)'>The God's Trial... began...</i>"
                 return "Unlocks a new row of Weakling Upgrades."
             },
             done() {return player.c.ud.gte(1e18)},
-            unlocked() {return hasMilestone("c",71)||inChallenge("dm",22)}
+            unlocked() {return hasMilestone("c",71)||inChallenge("dm",22)||inChallenge("a",22)}
         },
         26: {
             requirementDescription: "1e70 Unstable Dust",
             effectDescription() {
+                if(inChallenge("a",22)) return "Unlocks automation for <b>Mentality Strengthen</b> and <b>Weakling Strengthen</b>."
                 return "Unlocks two new layers."
             },
             done() {return player.c.ud.gte(1e70)},
-            unlocked() {return hasMilestone("c",71)||inChallenge("dm",22)}
+            toggles() {if(inChallenge("a",22)) return [["c","autoStrengthen"]]},
+            style() {if(inChallenge("a",22)) return {'height':'90px'}},
+            unlocked() {return hasMilestone("c",71)||inChallenge("dm",22)||inChallenge("a",22)}
+        },
+        27: {
+            requirementDescription: "1e500 Unstable Dust",
+            done() {return player.c.ud.gte("1e500")},
         },
         40: {
             requirementDescription: "1 Virtuous Crystal",
-            done() {return player.c.vc.gte(1)},
+            done() {return player.c.vc.gte(1)&&!inChallenge("dm",22)},
         },
         41: {
             requirementDescription: "3 Virtuous Crystals",
-            done() {return player.c.vc.gte(3)},
+            done() {return player.c.vc.gte(3)&&!inChallenge("dm",22)},
         },
         42: {
             requirementDescription: "5 Virtuous Crystals",
-            done() {return player.c.vc.gte(5)},
+            done() {return player.c.vc.gte(5)&&!inChallenge("dm",22)},
         },
         43: {
             requirementDescription: "10 Virtuous Crystals",
-            done() {return player.c.vc.gte(10)},
+            done() {return player.c.vc.gte(10)&&!inChallenge("dm",22)},
         },
         44: {
             requirementDescription: "30 Virtuous Crystals",
-            done() {return player.c.vc.gte(30)},
+            done() {return player.c.vc.gte(30)&&!inChallenge("dm",22)},
         },
         45: {
             requirementDescription: "50 Virtuous Crystals",
-            done() {return player.c.vc.gte(50)},
+            done() {return player.c.vc.gte(50)&&!inChallenge("dm",22)},
         },
         46: {
             requirementDescription: "500 Virtuous Crystals",
-            done() {return player.c.vc.gte(500)},
+            done() {return player.c.vc.gte(500)&&!inChallenge("dm",22)},
         },
         47: {
             requirementDescription: "5,000 Virtuous Crystals",
-            done() {return player.c.vc.gte(5000)},
+            done() {return player.c.vc.gte(5000)&&!inChallenge("dm",22)},
         },
         48: {
             requirementDescription: "100,000 Virtuous Crystals",
-            done() {return player.c.vc.gte(100000)},
+            done() {return player.c.vc.gte(100000)&&!inChallenge("dm",22)},
         },
         50: {
             requirementDescription: "0 Virtuous Crystals",
@@ -1149,41 +1407,45 @@ addLayer("c", {
             requirementDescription: "50 Virtuous Crystals",
             done() {return player.c.vc.gte(50)&&inChallenge("dm",22)},
         },
+        59: {
+            requirementDescription: "100 Virtuous Crystals",
+            done() {return player.c.vc.gte(100)&&inChallenge("dm",22)},
+        },
         70: {
             requirementDescription: "1 Evil Crystal",
-            done() {return player.c.ec.gte(1)},
+            done() {return player.c.ec.gte(1)&&!inChallenge("dm",22)},
         },
         71: {
             requirementDescription: "5 Evil Crystals",
-            done() {return player.c.ec.gte(5)},
+            done() {return player.c.ec.gte(5)&&!inChallenge("dm",22)},
         },
         72: {
             requirementDescription: "10 Evil Crystals",
-            done() {return player.c.ec.gte(10)},
+            done() {return player.c.ec.gte(10)&&!inChallenge("dm",22)},
         },
         73: {
             requirementDescription: "25 Evil Crystals",
-            done() {return player.c.ec.gte(25)},
+            done() {return player.c.ec.gte(25)&&!inChallenge("dm",22)},
         },
         74: {
             requirementDescription: "40 Evil Crystals",
-            done() {return player.c.ec.gte(40)},
+            done() {return player.c.ec.gte(40)&&!inChallenge("dm",22)},
         },
         75: {
             requirementDescription: "50 Evil Crystals",
-            done() {return player.c.ec.gte(50)},
+            done() {return player.c.ec.gte(50)&&!inChallenge("dm",22)},
         },
         76: {
             requirementDescription: "500 Evil Crystals",
-            done() {return player.c.ec.gte(500)},
+            done() {return player.c.ec.gte(500)&&!inChallenge("dm",22)},
         },
         77: {
             requirementDescription: "5,000 Evil Crystals",
-            done() {return player.c.ec.gte(5000)},
+            done() {return player.c.ec.gte(5000)&&!inChallenge("dm",22)},
         },
         78: {
             requirementDescription: "100,000 Evil Crystals",
-            done() {return player.c.ec.gte(100000)},
+            done() {return player.c.ec.gte(100000)&&!inChallenge("dm",22)},
         },
         80: {
             requirementDescription: "1 Evil Crystal",
@@ -1194,56 +1456,89 @@ addLayer("c", {
             done() {return player.c.ec.gte(2)&&inChallenge("dm",22)},
         },
         82: {
-            requirementDescription: "3 Evil Crystals",
-            done() {return player.c.ec.gte(3)&&inChallenge("dm",22)},
-        },
-        83: {
             requirementDescription: "4 Evil Crystals",
             done() {return player.c.ec.gte(4)&&inChallenge("dm",22)},
         },
-        84: {
-            requirementDescription: "5 Evil Crystals",
-            done() {return player.c.ec.gte(5)&&inChallenge("dm",22)},
+        83: {
+            requirementDescription: "6 Evil Crystals",
+            done() {return player.c.ec.gte(6)&&inChallenge("dm",22)},
         },
-        85: {
+        84: {
             requirementDescription: "10 Evil Crystals",
             done() {return player.c.ec.gte(10)&&inChallenge("dm",22)},
         },
-        86: {
+        85: {
             requirementDescription: "20 Evil Crystals",
             done() {return player.c.ec.gte(20)&&inChallenge("dm",22)},
         },
+        86: {
+            requirementDescription: "40 Evil Crystals",
+            done() {return player.c.ec.gte(40)&&inChallenge("dm",22)},
+        },
         87: {
-            requirementDescription: "30 Evil Crystals",
-            done() {return player.c.ec.gte(30)&&inChallenge("dm",22)},
+            requirementDescription: "60 Evil Crystals",
+            done() {return player.c.ec.gte(60)&&inChallenge("dm",22)},
         },
         88: {
-            requirementDescription: "50 Evil Crystals",
-            done() {return player.c.ec.gte(50)&&inChallenge("dm",22)},
+            requirementDescription: "100 Evil Crystals",
+            done() {return player.c.ec.gte(100)&&inChallenge("dm",22)},
+        },
+        89: {
+            requirementDescription: "1,000 Evil Crystals",
+            done() {return player.c.ec.gte(1000)&&inChallenge("dm",22)},
         },
     },
     clickables: {
         11: {
             title() {
-                if(inChallenge("dm",22)&&hasMilestone("c",7)) return "<h2>Trade "+formatWhole(tmp.c.crystalCost)+" Crystal Shards to get "+(hasUpgrade("c",32)?formatWhole(tmp.c.crystalsQuantity):formatWhole(1))+" Crystal"+((tmp.c.crystalsQuantity.eq(1)||!hasUpgrade("c",32))?"":"s")+"<br></h2>"
-                return "<h2>Condense "+formatWhole(tmp.c.crystalCost)+" Crystal Shards into "+(hasUpgrade("c",32)?formatWhole(tmp.c.crystalsQuantity):formatWhole(1))+" Crystal"+((tmp.c.crystalsQuantity.eq(1)||!hasUpgrade("c",32))?"":"s")+"<br></h2>"
+                if(inChallenge("dm",22)) {
+                    if(hasMilestone("c",8)) return "<h2>Trade "+formatWhole(tmp.c.crystalCost)+
+                    " Crystal Shards to get "+(hasUpgrade("c",32)?formatWhole(tmp.c.crystalsQuantity):formatWhole(1))+
+                    " Crystal"+((tmp.c.crystalsQuantity.eq(1)||!hasUpgrade("c",32))?"":"s")+"<br></h2>"
+                    if(hasMilestone("c",7)) return "<h2>Reach 100 Crystal Shards<br>to continue</h2>"
+                }   
+                return "<h2>Condense "+formatWhole(tmp.c.crystalCost)+" Crystal Shards into "+
+                (hasUpgrade("c",32)?formatWhole(tmp.c.crystalsQuantity):formatWhole(1))+" Crystal"+
+                ((tmp.c.crystalsQuantity.eq(1)||!hasUpgrade("c",32))?"":"s")+"<br></h2>"
             },
-            display: "<h3>Note: This forces a Crystal Shards reset.</h3>",
+            display() {
+                if(inChallenge("dm",22)&&hasMilestone("c",7)&&!hasMilestone("c",8)) return ""
+                return "<h3>Note: This forces a Crystal Shards reset.</h3>"
+            },
             onClick() {
                 player.c.points = player.c.points.sub(tmp.c.crystalCost)
                 crystalTypeDecider()
-                doReset("c", force=true)
+                if(inChallenge("dm",22)) {
+                    let keep = []
+                    player.c.resetCount = player.c.resetCount.add(1)
+                    player.c.dealCount = player.c.dealCount.add(1)
+                    if(hasMilestone("c",81)) keep.push("upgrades")
+                    layerDataReset("w",keep)
+                    player.de = new Decimal(0)
+                    player.ae = new Decimal(0)
+                }
+                else doReset("c", force=true)
             },
             onHold() { // QOL for mobile players
+                if(player.c.points.lt(tmp.c.crystalCost)) return
                 player.c.points = player.c.points.sub(tmp.c.crystalCost)
                 crystalTypeDecider()
-                doReset("c", force=true)
+                if(inChallenge("dm",22)) {
+                    let keep = []
+                    player.c.resetCount = player.c.resetCount.add(1)
+                    player.c.dealCount = player.c.dealCount.add(1)
+                    if(hasMilestone("c",81)) keep.push("upgrades")
+                    layerDataReset("w",keep)
+                    player.de = new Decimal(0)
+                    player.ae = new Decimal(0)
+                }
+                else doReset("c", force=true)
             },
             canClick() {
                 return (player.c.points.gte(tmp.c.crystalCost)&&(!hasUpgrade("c",21)||!hasUpgrade("c",41)))
             },
             unlocked: true,
-            style: {'width': '400px', 'height': '100px'}
+            style: {'width': '400px', 'height': '100px','touch-action':'manipulation'}
         },
         
         21: { // a replication of toggle but with unlock condition
@@ -1261,6 +1556,7 @@ addLayer("c", {
                 else {
                     setClickableState("c",21,1)
                     player.c.autoStrengthen = true
+                    if(hasMilestone("c",27)) player.a.outChTime = 0
                 }
             },
             style: {'width': "45px", 'min-height': "45px", "background-color": 'rgb(18, 187, 41)'}
@@ -1279,6 +1575,7 @@ addLayer("c", {
             },
             effect() {
                 let eff = player.c.total.pow(0.2).div(1.15).max(1).floor()
+                if(hasUpgrade("c",63)) eff = player.c.total.pow(0.22).div(1.35).max(1).floor()
                 return eff
             },
             effectDisplay() {
@@ -1287,7 +1584,7 @@ addLayer("c", {
             style: {"background"() {
                 return upgradeButtonStyle("vc","c",11)
             }},
-            unlocked() {return (hasMilestone(this.layer,45)||inChallenge("dm",21))&&(!inChallenge("dm",22))}
+            unlocked() {return (hasMilestone(this.layer,45)||inChallenge("dm",21))&&!inChallenge("dm",22)&&!inChallenge("a",22)}
         },
         12: {
             title: "Empowerment",
@@ -1370,8 +1667,8 @@ addLayer("c", {
                 let eff = tmp.c.crystalsQuantity.div(20)
                 if(hasUpgrade("c",11)) eff = eff.mul(upgradeEffect("c",11))
                 if(hasUpgrade("c",21)&&hasUpgrade("c",41)) eff = eff.mul(10)
-                if(hasChallenge("a",11)&&!inChallenge("a",21)) eff = eff.mul(tmp.a.vppEffect.add(1))
-                if((hasMilestone("dm",2)&&(inChallenge("dm",11)||inChallenge("dm",12)||inChallenge("dm",21)||inChallenge("dm",22)))||hasMilestone("dm",3)) eff = eff.mul(1e3)
+                if(hasChallenge("a",11)&&!inChallenge("a",21)&&!inChallenge("a",22)) eff = eff.mul(tmp.a.vppEffect.add(1))
+                if((hasMilestone("dm",2)&&(inChallenge("dm",11)||inChallenge("dm",12)||inChallenge("dm",21)||(inChallenge("dm",22)&&false)))||hasMilestone("dm",3)) eff = eff.mul(1e3)
                 if((hasMilestone("a",2)&&(inChallenge("a",11)||inChallenge("a",12)||inChallenge("a",21)||inChallenge("a",22)))||hasMilestone("a",3)) eff = eff.mul(1e6)
                 if(inChallenge("dm",12)) eff = new Decimal(0)
                 return eff
@@ -1401,7 +1698,7 @@ addLayer("c", {
             style: {"background"() {
                 return upgradeButtonStyle("vc","c",22)
             }},
-            unlocked() {return (player.a.vc2.gte(5))&&(!inChallenge("dm",22))}
+            unlocked() {return (player.a.vc2.gte(5))&&!inChallenge("dm",22)&&!inChallenge("a",22)}
         },
         23: {
             title: "Purity<sup>2</sup>",
@@ -1420,7 +1717,7 @@ addLayer("c", {
             style: {"background"() {
                 return upgradeButtonStyle("vc","c",23)
             }},
-            unlocked() {return hasChallenge("a",21)&&(!inChallenge("dm",22))}
+            unlocked() {return hasChallenge("a",21)&&!inChallenge("dm",22)&&!inChallenge("a",22)}
         },
         24: {
             title: "Purity<sup>3</sup>",
@@ -1463,7 +1760,7 @@ addLayer("c", {
                 return upgradeButtonStyle("ec","c",31)
             }},
             unlocked() {
-                if(inChallenge("dm",22)) return false
+                if(inChallenge("dm",22)||inChallenge("a",22)) return false
                 return (hasMilestone(this.layer,75))
             }
         },
@@ -1540,9 +1837,10 @@ addLayer("c", {
             effect() {
                 let eff = tmp.c.crystalsQuantity.div(20)
                 if(hasUpgrade("c",31)) eff = eff.mul(upgradeEffect("c",31))
-                if(hasUpgrade("c",21)&&hasUpgrade("c",41)) eff = eff.mul(10)
-                if(hasChallenge("dm",11)&&!inChallenge("a",21)) eff = eff.mul(tmp.dm.eppEffect.add(1))
-                if((hasMilestone("dm",2)&&(inChallenge("dm",11)||inChallenge("dm",12)||inChallenge("dm",21)||inChallenge("dm",22)))||hasMilestone("dm",3)) eff = eff.mul(1e6)
+                if((hasUpgrade("c",21)&&hasUpgrade("c",41))||hasMilestone("c",89)) eff = eff.mul(10)
+                if(hasUpgrade("c",73)) eff = eff.mul(upgradeEffect("c",73))
+                if(hasChallenge("dm",11)&&!inChallenge("a",21)&&!inChallenge("a",22)) eff = eff.mul(tmp.dm.eppEffect.add(1))
+                if((hasMilestone("dm",2)&&(inChallenge("dm",11)||inChallenge("dm",12)||inChallenge("dm",21)||(inChallenge("dm",22)&&false)))||hasMilestone("dm",3)) eff = eff.mul(1e6)
                 if((hasMilestone("a",2)&&(inChallenge("a",11)||inChallenge("a",12)||inChallenge("a",21)||inChallenge("a",22)))||hasMilestone("a",3)) eff = eff.mul(1e3)
                 if(inChallenge("a",12)) eff = new Decimal(0)
                 return eff
@@ -1574,6 +1872,7 @@ addLayer("c", {
             }},
             unlocked() {
                 if(inChallenge("dm",22)) return hasUpgrade("c",41)
+                if(inChallenge("a",22)) return false
                 return (player.dm.ec2.gte(5))
             }
         },
@@ -1596,6 +1895,7 @@ addLayer("c", {
             }},
             unlocked() {
                 if(inChallenge("dm",22)) return hasUpgrade("c",42)
+                if(inChallenge("a",22)) return false
                 return hasChallenge("dm",21)
             }
         },
@@ -1620,7 +1920,7 @@ addLayer("c", {
         },
         51: {
             title: "Fogging",
-            description: "The first Unstable Dust effect is now ^0.9.",
+            description: "Unstable Dust effect is now ^0.9.",
             cost() {
                 if(inChallenge("dm",21)) return new Decimal("9.99e9,999")
                 return new Decimal(1000)
@@ -1717,7 +2017,7 @@ addLayer("c", {
                 return upgradeButtonStyle("c","c",61)
             }},
             unlocked() {
-                if(inChallenge("dm",22)) return false
+                if(inChallenge("dm",22)||inChallenge("a",22)) return false
                 return (player.a.vc2.gte(5)||player.dm.ec2.gte(5))
             }
         },
@@ -1730,14 +2030,26 @@ addLayer("c", {
                 return upgradeButtonStyle("c","c",62)
             }},
             unlocked() {
-                if(inChallenge("dm",22)) return false
+                if(inChallenge("dm",22)||inChallenge("a",22)) return false
                 return hasChallenge("dm",21)
             }
         },
         63: {
+            title: "Equalize",
+            description: "<i>Faith</i> and <i>Disbelief</i> has the exact same gain, but the price for Purified VCs will also increase.",
+            cost: new Decimal(1e160),
+            style: {"background"() {
+                return upgradeButtonStyle("c","c",63)
+            }},
+            unlocked() {
+                if(inChallenge("dm",22)||inChallenge("a",22)) return false
+                return hasChallenge("dm",22)&&hasChallenge("a",22)
+            }
+        },
+        64: {
             title: "Sublimation",
             description: "Boosts Mentality based on Crystal Shards.",
-            cost: new Decimal("9e999"),
+            cost: new Decimal(1e160),
             effect() {
                 let eff = new Decimal(2)
                 return eff
@@ -1746,18 +2058,115 @@ addLayer("c", {
                 return "^"+formatWhole(this.effect())
             },
             style: {"background"() {
-                return upgradeButtonStyle("c","c",63)
+                return upgradeButtonStyle("c","c",64)
             }},
             unlocked() {return false}
         },
-        64: {
-            title: "Equalize",
-            description: "<i>Faith</i> and <i>Disbelief</i> has the exact same gain, but the price for Purified VCs will also increase.",
-            cost: new Decimal(1e51),
+        // DC22 Exclusive #######################################################################################################
+        71: {
+            title: "Did ya feel familiar with this?",
+            description: "Increase the gain of Evil Crystals based on total Crystal Shards.",
+            cost: new Decimal(100),
+            currencyDisplayName: "Evil Crystals",
+            currencyInternalName: "ec",
+            currencyLayer: "c",
+            effect() {
+                let eff = player.c.total.pow(0.22).div(1.35).max(1).floor()
+                return eff
+            },
+            effectDisplay() {
+                return "×"+formatWhole(this.effect())
+            },
             style: {"background"() {
-                return upgradeButtonStyle("c","c",64)
+                return upgradeButtonStyle("ec","c",71)
             }},
-            unlocked() {return hasUpgrade("c",63)}
+            unlocked() {return hasMilestone("c",88)}
+        },
+        72: {
+            title: "Bliss",
+            description: "Enhance the effects of Evil Crystals.",
+            cost: new Decimal(150),
+            currencyDisplayName: "Evil Crystals",
+            currencyInternalName: "ec",
+            currencyLayer: "c",
+            effect() {
+                let eff = new Decimal(2)
+                return eff
+            },
+            effectDisplay() {
+                return "^"+formatWhole(this.effect())
+            },
+            style: {"background"() {
+                return upgradeButtonStyle("ec","c",72)
+            }},
+            unlocked() {return hasUpgrade("c",71)}
+        },
+        73: {
+            title: "ECchange",
+            description: "Increase the speed of EC generation based on EC.",
+            cost: new Decimal(2000),
+            currencyDisplayName: "Evil Crystals",
+            currencyInternalName: "ec",
+            currencyLayer: "c",
+            effect() {
+                let eff = player.c.ec.max(1).log(5).div(2).max(1)
+                return eff
+            },
+            effectDisplay() {
+                return "×"+format(this.effect())
+            },
+            style: {"background"() {
+                return upgradeButtonStyle("ec","c",73)
+            }},
+            unlocked() {return hasUpgrade("c",93)}
+        },
+        91: {
+            title: "Liberation",
+            description: "Reclaim the generation of Crystal Shards. Generate Crystal Shards reset passively too.",
+            tooltip: "This will also disable the Crystals button under Weakling layer.",
+            effect() {
+                let eff = new Decimal(5)
+                return eff
+            },
+            effectDisplay() {
+                return formatWhole(this.effect())+"/s"
+            },
+            cost: new Decimal(5e20),
+            currencyDisplayName: "Demonic Essence",
+            currencyInternalName: "de",
+            style: {"background"() {
+                return upgradeButtonStyle("dc22","c",91)
+            }},
+            unlocked() {return hasMilestone("c",56)}
+        },
+        92: {
+            title: "Dedication",
+            description: "Raise the cap of the 3rd Crystal Shards Milestone by 10.",
+            cost: new Decimal(1e21),
+            currencyDisplayName: "Demonic Essence",
+            currencyInternalName: "de",
+            style: {"background"() {
+                return upgradeButtonStyle("dc22","c",92)
+            }},
+            unlocked() {return hasUpgrade("c",91)}
+        },
+        93: {
+            title: "Salvation",
+            description: "Enhance the effect of the 5th Unstable Dust milestone.",
+            cost: new Decimal(1e27),
+            currencyDisplayName: "Demonic Essence",
+            currencyInternalName: "de",
+            effect() {
+                let eff = new Decimal(1.75)
+                return eff
+            },
+            effectDisplay() {
+                return "^"+format(this.effect())
+            },
+            style: {"background"() {
+                return upgradeButtonStyle("dc22","c",93)
+            }},
+            unlocked() {return hasMilestone("c",57)}
         },
     }
 }) // Crystals

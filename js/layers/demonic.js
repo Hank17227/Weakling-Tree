@@ -1,3 +1,19 @@
+function ec1CapReached() {
+    return player.dm.ec1Bought == tmp.dm.ec1Cap
+}
+
+function ec2CapReached() {
+    return player.dm.ec2Bought == tmp.dm.ec2Cap
+}
+
+function ec3CapReached() {
+    return player.dm.ec3Bought == tmp.dm.ec3Cap
+}
+
+function ec4CapReached() {
+    return player.dm.ec4Bought == tmp.dm.ec4Cap
+}
+
 function vcEffectsListDC22(start=new Decimal(0), end=new Decimal(0), effectOnly=false) {
 	let lockPre = "<div style='color: gray; padding: 5px'>◇ Next unlocks at "
 	let lockPost = " Virtuous Crystals.</div>"
@@ -11,19 +27,23 @@ function vcEffectsListDC22(start=new Decimal(0), end=new Decimal(0), effectOnly=
 		lockPre+"20"+lockPost,
 		lockPre+"33"+lockPost,
 		lockPre+"50"+lockPost,
+        lockPre+"100"+lockPost,
 	]
 	let effects = [
 		"◆ Unlock automation for<br><b>Weakling Strengthen</b>.<br>",
-        "<div style='padding: 10px'>◆ Enhance the gain formula of Angelic Essence.</div>",
-        "<div style='padding: 10px'>◆ Angelic Essence now also divide Weakling Dust gain.</div>",
-		"<div style='padding: 10px'>◆ +"+colorText("b",tmp.c.colorvc,format(1))+" Angelic Essence base gain.</div>",
-		"<div style='padding: 10px'>◆ /"+colorText("b",tmp.c.colorvc,format(1))+" to all effects on Evil Crystals.<br></div>",
-		"<div style='padding: 10px'>◆ +"+colorText("b",tmp.c.colorvc,formatWhole(0))+" to the cost of condensing Crystals.</div>",
+        "<div style='padding: 10px'>◆ Improve the gain formula of Angelic Essence.</div>",
+        "<div style='padding: 10px'>◆ Angelic Essence also divide<br>Weakling Dust gain.</div>",
+		"<div style='padding: 10px'>◆ ×"+colorText("b",tmp.c.colorvc,format(tmp.c.vcToAEBase))+" Angelic Essence gain.</div>",
+		"<div style='padding: 10px'>◆ /"+colorText("b",tmp.c.colorvc,format(tmp.c.vcToECEffects))+" to all effects on Evil Crystals<br>except the 1st effect.<br></div>",
+		"<div style='padding: 10px'>◆ +"+colorText("b",tmp.c.colorvc,formatWhole(tmp.c.vcToCostIncrease))+" to the base cost of condensing Crystals.</div>",
 		"<div style='padding: 10px'>◆ Unlock Crystal Shards upgrades.</div>",
-		"<div style='padding: 10px'>◆ ×"+colorText("b",tmp.c.colorvc,format(1))+" to the effect of Angelic Essence.</div>",
-		"<div style='padding: 10px'>◆ /"+colorText("b",tmp.c.colorvc,format(1))+" to Evil Crystals gain.</div>"
+		"<div style='padding: 10px'>◆ ×"+colorText("b",tmp.c.colorvc,format(tmp.c.vcToAEEffect))+" to the first effect of Angelic Essence.</div>",
+		"<div style='padding: 10px'>◆ /"+colorText("b",tmp.c.colorvc,format(tmp.c.vcToEC))+" to Evil Crystals gain.</div>",
+        "<div style='padding: 10px'>◆ Reclaim the generation of Virtuous Crystals.</div>",
 	]
-	let effectText = ""
+    if(hasMilestone("c",85)) effects[4] =  "<div style='padding: 10px'>◆ /"+colorText("b",tmp.c.colorvc,format(tmp.c.vcToECEffects))+" to all effects on Evil Crystals<br>except the 1st and the 6th.<br></div>"
+	if(hasMilestone("c",87)) effects[4] =  "<div style='padding: 10px'>◆ /"+colorText("b",tmp.c.colorvc,format(tmp.c.vcToECEffects))+" to all effects on Evil Crystals<br>except the 1st, the 6th and the 8th.<br></div>"
+    let effectText = ""
 	for (let index = start; index.lt(end); index = index.add(1))
 		effectText = effectText+effects[index]
 	if(!effectOnly) effectText = effectText+effectsLocked[end]
@@ -39,23 +59,25 @@ function ecEffectsListDC22(start=new Decimal(0), end=new Decimal(0), effectOnly=
 		lockPre+"4"+lockPost,
 		lockPre+"6"+lockPost,
 		lockPre+"10"+lockPost,
-		lockPre+"15"+lockPost,
 		lockPre+"20"+lockPost,
-		lockPre+"30"+lockPost,
-		lockPre+"50"+lockPost,
+		lockPre+"40"+lockPost,
+		lockPre+"60"+lockPost,
+		lockPre+"100"+lockPost,
+        lockPre+"1,000"+lockPost,
 	]
 	let effects = [
-		"◆ Unlock Automation for <b>Demonic Strengthen</b>.<div style='padding:7px'>Currently: 5 per second.</div>",
+		"◆ Unlock Automation for <b>Demonic Strengthen</b>.<div style='padding:7px'>Currently: "+formatWhole(tmp.c.bulkBuyCount)+" per second.</div>",
         "<div style='padding: 10px'>◆ Keep all of Weakling upgrades<br>on reset.</div>",
-		"<div style='padding: 10px'>◆ ×"+colorText("b",tmp.c.colorec,format(1))+" Crystal Shards gained on reset.<br></div>",
-		"<div style='padding: 10px'>◆ ×"+colorText("b",tmp.c.colorec,format(1))+" Demonic Essence gain.<br></div>",
-		"<div style='padding: 10px'>◆ ×"+colorText("b",tmp.c.colorec,format(1))+" Weakling Dust gain.<br></div>",
-		"<div style='padding: 10px'>◆ Change the effect of Weakling Dust.</div>",
-		"<div style='padding: 10px'>◆ +"+colorText("b",tmp.c.colorec,formatWhole(0))+" to the speed of 1st effect.</div>",
-		"<div style='padding: 10px'>◆ +"+colorText("b",tmp.c.colorec,format(0.02))+" to the multiplier of <b>Weakling Strengthen</b> per purchase,<br>up to ×4 total.</div>",
-		"<div style='padding: 10px'>◆ Unlock Evil Crystal upgrades and new milestones for Unstable Dust.</div>"
+		"<div style='padding: 10px'>◆ ×"+colorText("b",tmp.c.colorec,format(tmp.c.ecToCS))+" Crystal Shards gained on reset.<br></div>",
+		"<div style='padding: 10px'>◆ ×"+colorText("b",tmp.c.colorec,format(tmp.c.ecToDE))+" Demonic Essence gain.<br></div>",
+		"<div style='padding: 10px'>◆ ×"+colorText("b",tmp.c.colorec,format(tmp.c.ecToWeakling))+" Weakling Dust gain.<br></div>",
+        "<div style='padding: 10px'>◆ +"+colorText("b",tmp.c.colorec,formatWhole(tmp.c.ecToBulkCount))+" to the speed of 1st effect,<br>up to 25/s.</div>",
+		"<div style='padding: 10px'>◆ Unlock a new milestone for Unstable Dust.</div>",
+		"<div style='padding: 10px'>◆ +"+colorText("b",tmp.c.colorec,format(tmp.c.ecToWSBaseMult))+" to the multiplier of <b>Weakling Strengthen</b> per purchase,<br>up to ×4 total.</div>",
+		"<div style='padding: 10px'>◆ Unlock Evil Crystal upgrades.</div>",
+        "<div style='padding: 10px'>◆ Reclaim the generation of<br>Evil Crystals.</div>",
 	]
-	if(hasMilestone("c",86)) effects[0] = "◆ Unlock Automation for <b>Demonic Strengthen</b>.<div style='padding:7px'>Currently: "+colorText("b",tmp.c.colorec,formatWhole(5))+" per second.</div>"
+	if(hasMilestone("c",85)) effects[0] = "◆ Unlock Automation for <b>Demonic Strengthen</b>.<div style='padding:7px'>Currently: "+colorText("b",tmp.c.colorec,formatWhole(tmp.c.bulkBuyCount))+" per second.</div>"
 	let effectText = ""
 	for (let index = start; index.lt(end); index = index.add(1))
 		effectText = effectText+effects[index]
@@ -88,11 +110,15 @@ addLayer("dm", {
         Purification: {
             content: [
                 ["display-text", function() {
-                    return "You have "+colorText("h3",tmp.c.colorec,formatWhole(player.c.ec))+" Evil Crystal"+(player.c.ec.eq(1)?"":"s")+". (+"+format(inChallenge("dm",22)?tmp.c.ecGainDC22:upgradeEffect("c",41))+"/s)"
+                    let ecGain = upgradeEffect("c",41)
+                    if(inChallenge("dm",22)) ecGain = tmp.c.ecGainDC22
+                    if(inChallenge("a",22)) ecGain = tmp.c.ecGainDC22
+                    return "You have "+colorText("h3",tmp.c.colorec,formatWhole(player.c.ec))+" Evil Crystal"+(player.c.ec.eq(1)?"":"s")+". (+"+format(ecGain)+"/s)"
                 }],"blank",
                 ["display-text", function() {
                     let effectText = "which translates to <h3>+"+formatWhole(tmp.dm.eppEffect.mul(100))+"</h3>% of extra EC production."
                     if(inChallenge("a",21)) effectText = "which translates to <h3>+"+format(tmp.dm.eppEffect.mul(100))+"</h3>% of extra Mentality production."
+                    if(inChallenge("a",22)) effectText = "which translates to <h3>+"+format(tmp.dm.eppEffect.mul(100))+"</h3>% of extra Mentality and Weakling Dust production."
                     if(inChallenge("dm",22)) effectText = "which translates to <h3>+"+format(tmp.dm.eppEffect.mul(100))+"</h3>% of extra EC production."
                     return "You have <h2>"+formatWhole(tmp.dm.eppCount)+"</h2> Evil Purification Power, "+effectText
                 }], "blank",
@@ -194,9 +220,9 @@ addLayer("dm", {
         if(!player.dm.ch3Unlocked) tmp.dm.challenge3Unlock
         if(!player.dm.ch4Unlocked) tmp.dm.challenge4Unlock
         tmp.dm.challengeCount
-        if(player.dm.ec2.gte(1)&&!inChallenge("dm",22)) player.dm.ec1 = player.dm.ec1.add(tmp.dm.ec1Gain.mul(diff))
-        if(player.dm.ec3.gte(1)&&!inChallenge("dm",22)) player.dm.ec2 = player.dm.ec2.add(tmp.dm.ec2Gain.mul(diff))
-        if(player.dm.ec4.gte(1)&&!inChallenge("dm",22)) player.dm.ec3 = player.dm.ec3.add(tmp.dm.ec3Gain.mul(diff))
+        if(player.dm.ec2.gte(1)&&!inChallenge("dm",22)&&!inChallenge("a",22)) player.dm.ec1 = player.dm.ec1.add(tmp.dm.ec1Gain.mul(diff))
+        if(player.dm.ec3.gte(1)&&!inChallenge("dm",22)&&!inChallenge("a",22)) player.dm.ec2 = player.dm.ec2.add(tmp.dm.ec2Gain.mul(diff))
+        if(player.dm.ec4.gte(1)&&!inChallenge("dm",22)&&!inChallenge("a",22)) player.dm.ec3 = player.dm.ec3.add(tmp.dm.ec3Gain.mul(diff))
         if(inChallenge("dm",12)||inChallenge("dm",21)||inChallenge("dm",22)) player.dm.inChTime = player.dm.inChTime + diff
         if(inChallenge("a",22)||inChallenge("dm",22)){
             player.ae = player.ae.add(aeGain().mul(diff))
@@ -217,7 +243,7 @@ addLayer("dm", {
     },
 
     challengeCount() {
-        player.dm.challengeCompletion = challengeCompletions("dm",11)+challengeCompletions("dm",12)+challengeCompletions("dm",21)//+challengeCompletions("dm",22)
+        player.dm.challengeCompletion = challengeCompletions("dm",11)+challengeCompletions("dm",12)+challengeCompletions("dm",21)+challengeCompletions("dm",22)
         return
     },
 
@@ -225,6 +251,7 @@ addLayer("dm", {
         let req = new Decimal("1e140")
         if(tmp.dm.challenges[12].unlocked) req = new Decimal("1e240")
         if(tmp.dm.challenges[21].unlocked) req = new Decimal("1e432")
+        if(challengeCompletions("a",22) == 1) req = new Decimal("1e500")
         return req
     },
 
@@ -239,7 +266,9 @@ addLayer("dm", {
     },
 
     challenge4Unlock() {
-        if(player.c.ud.gte("1e432")) player.dm.ch4Unlocked = true
+        let req = new Decimal("1e432")
+        if(challengeCompletions("dm",22) == 1) req = new Decimal("1e500")
+        if(player.c.ud.gte(req)) player.a.ch4Unlocked = true
         return
     },
 
@@ -247,11 +276,16 @@ addLayer("dm", {
     eppCount() {
         let count = player.dm.ec1.mul(tmp.dm.ec1Mult)
         if(inChallenge("a",12)||inChallenge("dm",12)) count = new Decimal(0)
+        if(inChallenge("a",22)) count = count.min(2e10)
         return count
     },
 
     eppEffect() {
         let eff = tmp.dm.eppCount
+        if(inChallenge("a",22)){
+            eff = eff.pow(0.25).sub(1)
+            if(hasUpgrade("w",52)) eff = eff.mul(upgradeEffect("w",52))
+        }
         if(inChallenge("dm",22)) eff = eff.pow(0.025).sub(1)
         return eff
     },
@@ -273,22 +307,25 @@ addLayer("dm", {
 
     ec1Mult() {
         let mult = new Decimal(1)
-        if(hasChallenge("dm",12)) mult = mult.mul(challengeEffect("dm",12))
         if(hasUpgrade("c",42)) mult = mult.mul(upgradeEffect("c",42))
+        if(hasChallenge("dm",12)) mult = mult.mul(challengeEffect("dm",12))
         if(hasChallenge("dm",21)) mult = mult.mul(challengeEffect("dm",21))
+        if(hasChallenge("dm",22)) mult = mult.mul(challengeEffect("dm",22))
         return mult
     },
 
     ec2Mult() {
         let mult = new Decimal(1)
-        if(hasChallenge("dm",21)) mult = mult.mul(challengeEffect("dm",21))
         if(hasUpgrade("c",43)) mult = mult.mul(upgradeEffect("c",43))
+        if(hasChallenge("dm",21)) mult = mult.mul(challengeEffect("dm",21))
+        if(hasChallenge("dm",22)) mult = mult.mul(challengeEffect("dm",22))
         return mult
     },
 
     ec3Mult() {
         let mult = new Decimal(1)
         if(hasUpgrade("c",44)) mult = mult.mul(upgradeEffect("c",44))
+        if(hasChallenge("dm",22)) mult = mult.mul(challengeEffect("dm",22))
         return mult
     },
 
@@ -316,9 +353,29 @@ addLayer("dm", {
     },
 
     ec4Cost() {
-        let startCost = new Decimal("9e999")
-        let cost = startCost.mul(Decimal.pow(360,player.dm.ec4Bought))
+        let startCost = new Decimal(1e130)
+        let cost = startCost.mul(Decimal.pow(3600,player.dm.ec4Bought))
         return cost
+    },
+
+    ec1Cap() {
+        let cap = 200
+        return cap
+    },
+
+    ec2Cap() {
+        let cap = 200
+        return cap
+    },
+
+    ec3Cap() {
+        let cap = 200
+        return cap
+    },
+
+    ec4Cap() {
+        let cap = 20
+        return cap
     },
 
     challenges: {
@@ -326,7 +383,7 @@ addLayer("dm", {
             name: "Weakling Amplifier",
             challengeDescription: "Weakling Dust effect is now ^2. The 4th, 5th, 8th VC effects, and 1st UD milestone are disabled.",
             goalDescription: "Reach 1e11 Weakling Dust.",
-            rewardDescription: "Unlocks Evil Crystal Purification. The first UD Effect is further reduced to ^0.7.",
+            rewardDescription: "Unlocks Evil Crystal Purification. The UD Effect is further reduced to ^0.7.",
             canComplete: function() {return player.w.points.gte(1e11)},
             rewardEffect: 0.7
         },
@@ -342,6 +399,10 @@ addLayer("dm", {
                 player.c.total = new Decimal(0)
                 player.a.inChTime = 0
                 player.dm.inChTime = 0
+                player.a.outChTime = 0
+            },
+            onExit() {
+                player.a.outChTime = 0
             },
             canComplete: function() {return player.w.points.gte(5e31)},
             unlocked() {return player.dm.ch2Unlocked},
@@ -359,32 +420,50 @@ addLayer("dm", {
                 player.c.total = new Decimal(0)
                 player.a.inChTime = 0
                 player.dm.inChTime = 0
+                player.a.outChTime = 0
                 player.w.upgrades = [11,12,13,14,15,21,22,23,24,25]
                 player.c.upgrades = [21,22,41,42,55,61]
             },
             onExit() {
                 player.w.upgrades = [11,12,13,14,15,21,22,23,24,25,31,32,33,34,35]
                 player.c.upgrades = [11,12,13,14,21,22,31,32,33,34,41,42,51,52,53,54,55,61]
+                if(player.a.vc3.gte(8)||player.dm.ec3.gte(9)) player.c.upgrades.push(23,43,62)
+                if(player.a.vc4.gte(1)||player.dm.ec4.gte(1)) player.c.upgrades.push(63)
+                player.a.outChTime = 0
             },
             canComplete: function() {return player.w.points.gte(2e90)},
             unlocked() {return player.dm.ch3Unlocked},
             rewardEffect: 3
         },
-        /*22: {
-            name: "An Escape from Hell (WIP)",
-            challengeDescription: "Disable the gain of Mentality. Unlocks new upgrades that are exclusive to this challenge. <b style='color:red'>You will lose almost all upgrades and milestones in which they're not retrievable or harder to obtain!</b>",
-            goalDescription: "Break through the constraint!",
-            rewardDescription: "Unlocks Evil Crystal<sup>4</sup> Purification. ×10 Purified EC<sup>1</sup>, EC<sup>2</sup><br>and EC<sup>3</sup> multiplier.",
+        22: {
+            name: "An Escape from Hell",
+            challengeDescription() {
+                let spcText = "<h3 style='color:rgb(119, 6, 34)'>SUPER CHALLENGE ("+formatWhole(challengeCompletions(this.layer,22)+1)+"/"+formatWhole(tmp.dm.challenges[22].completionLimit)+")</h3>"
+                let descText = "<br>Disable the gain of Mentality. Unlocks new upgrades that are exclusive to this challenge. "
+                let warningText = "<b style='color:red'>You will lose almost everything!</b>"
+                return spcText+descText+warningText
+            },
+            goalDescription() {
+                if(challengeCompletions(this.layer,22) == 0) return "Reach 2.58e47 Weakling Dust."
+                if(challengeCompletions(this.layer,22) == 1) return "Coming soon..."
+            },
+            rewardDescription() {
+                if(challengeCompletions(this.layer,22) == 0) return "Unlocks Evil Crystal<sup>4</sup> Purification. ×5 Purified EC<sup>1</sup>, EC<sup>2</sup><br>and EC<sup>3</sup> multiplier."
+                if(challengeCompletions(this.layer,22) == 1) return "Unlocks EC<sup>4</sup>, ×5 Purified EC<sup>1</sup>, EC<sup>2</sup> and EC<sup>3</sup>."
+            },
+            completionLimit: 4,
             onEnter() {
                 player.c.points = new Decimal(0)
                 player.c.vc = new Decimal(0)
                 player.c.ec = new Decimal(0)
                 player.c.total = new Decimal(0)
                 player.c.resetCount = new Decimal(0)
+                player.c.dealCount = new Decimal(0)
                 player.ae = new Decimal(0)
                 player.de = new Decimal(0)
                 player.a.inChTime = 0
                 player.dm.inChTime = 0
+                player.a.outChTime = 0
                 player.w.upgrades = []
                 player.c.upgrades = []
                 player.c.milestones = [9,25,26]
@@ -393,14 +472,20 @@ addLayer("dm", {
                 player.w.upgrades = [11,12,13,14,15,21,22,23,24,25,31,32,33,34,35]
                 player.c.upgrades = [11,12,13,14,21,22,23,31,32,33,34,41,42,43,51,52,53,54,55,61,62]
                 player.c.milestones = [0,1,2,3,4,5,6,9,20,21,22,23,24,25,26,40,41,42,43,44,45,46,47,48,70,71,72,73,74,75,76,77,78]
+                if(challengeCompletions("a",22) >= 1||challengeCompletions("dm",22) >= 1) player.c.milestones.push(27)
+                if(player.a.vc4.gte(1)||player.dm.ec4.gte(1)) player.c.upgrades.push(63)
                 player.de = new Decimal(0)
                 player.ae = new Decimal(0)
                 player.c.resetCount = new Decimal(0)
+                player.a.outChTime = 0
             },
-            canComplete: function() {return getPointGen().gte(1)},
+            canComplete: function() {
+                if(challengeCompletions(this.layer,22) == 0) return player.w.points.gte(Decimal.pow(8,52.5))
+                return getPointGen().gte(1)
+            },
             unlocked() {return player.dm.ch4Unlocked},
-            rewardEffect: 3
-        }*/
+            rewardEffect: 5
+        }
     },
 
     milestones: {
@@ -428,15 +513,22 @@ addLayer("dm", {
 
      clickables: {
         11: {
-            title: "Buy",
-            display() {return "Cost: "+format(tmp.dm.ec1Cost)+" EC"},
-            tooltip() {return "Bought: "+formatWhole(player.dm.ec1Bought)},
-            canClick() {return player.c.ec.gte(tmp.dm.ec1Cost)},
+            title() {
+                if(ec1CapReached()) return "Capped"
+                return "Buy"
+            },
+            display() {
+                if(ec1CapReached()) return ""
+                return "Cost: "+format(tmp.dm.ec1Cost)+" VC"
+            },
+            tooltip() {return "Bought: "+formatWhole(player.dm.ec1Bought)+"/"+formatWhole(tmp.dm.ec1Cap)},
+            canClick() {return player.c.ec.gte(tmp.dm.ec1Cost)&&!ec1CapReached()},
             onClick() {
                 player.c.ec = player.c.ec.sub(tmp.dm.ec1Cost)
                 player.dm.ec1 = player.dm.ec1.add(1)
                 player.dm.ec1Bought++
             },
+            canAfford() {player.c.ec.gte(tmp.dm.ec1Cost)},
             onHold() {
                 player.c.ec = player.c.ec.sub(tmp.dm.ec1Cost)
                 player.dm.ec1 = player.dm.ec1.add(1)
@@ -452,19 +544,21 @@ addLayer("dm", {
         },
         12: {
             title() {
+                if(ec2CapReached()) return "Capped"
                 if(hasChallenge("dm",12)) return "Buy"
                 return "Locked"
             },
             display() {
+                if(ec2CapReached()) return ""
                 if(hasChallenge("dm",12)) return "Cost: "+format(tmp.dm.ec2Cost)+" EC"
                 return ""
             },
             tooltip() {
-                if(hasChallenge("dm",12)) return "Bought: "+formatWhole(player.dm.ec2Bought)
+                if(hasChallenge("dm",12)) return "Bought: "+formatWhole(player.dm.ec2Bought)+"/"+formatWhole(tmp.dm.ec2Cap)
                 return ""
             },
             canClick() {
-                if(hasChallenge("dm",12)) return player.c.ec.gte(tmp.dm.ec2Cost)
+                if(hasChallenge("dm",12)) return player.c.ec.gte(tmp.dm.ec2Cost)&&!ec2CapReached()
                 return false
             },
             onClick() {
@@ -472,6 +566,7 @@ addLayer("dm", {
                 player.dm.ec2 = player.dm.ec2.add(1)
                 player.dm.ec2Bought++
             },
+            canAfford() {player.c.ec.gte(tmp.dm.ec2Cost)},
             onHold() {
                 player.c.ec = player.c.ec.sub(tmp.dm.ec2Cost)
                 player.dm.ec2 = player.dm.ec2.add(1)
@@ -489,19 +584,21 @@ addLayer("dm", {
         },
         13: {
             title() {
+                if(ec3CapReached()) return "Capped"
                 if(hasChallenge("dm",21)) return "Buy"
                 return "Locked"
             },
             display() {
+                if(ec3CapReached()) return ""
                 if(hasChallenge("dm",21)) return "Cost: "+format(tmp.dm.ec3Cost)+" EC"
                 return ""
             },
             tooltip() {
-                if(hasChallenge("dm",21)) return "Bought: "+formatWhole(player.dm.ec3Bought)
+                if(hasChallenge("dm",21)) return "Bought: "+formatWhole(player.dm.ec3Bought)+"/"+formatWhole(tmp.dm.ec3Cap)
                 return ""
             },
             canClick() {
-                if(hasChallenge("dm",21)) return player.c.ec.gte(tmp.dm.ec3Cost)
+                if(hasChallenge("dm",21)) return player.c.ec.gte(tmp.dm.ec3Cost)&&!ec3CapReached()
                 return false
             },
             onClick() {
@@ -509,6 +606,7 @@ addLayer("dm", {
                 player.dm.ec3 = player.dm.ec3.add(1)
                 player.dm.ec3Bought++
             },
+            canAfford() {player.c.ec.gte(tmp.dm.ec3Cost)},
             onHold() {
                 player.c.ec = player.c.ec.sub(tmp.dm.ec3Cost)
                 player.dm.ec3 = player.dm.ec3.add(1)
@@ -526,19 +624,21 @@ addLayer("dm", {
         },
         14: {
             title() {
+                if(ec4CapReached()) return "Capped"
                 if(hasChallenge("dm",22)) return "Buy"
                 return "Locked"
             },
             display() {
+                if(ec4CapReached()) return ""
                 if(hasChallenge("dm",22)) return "Cost: "+format(tmp.dm.ec4Cost)+" EC"
                 return ""
             },
             tooltip() {
-                if(hasChallenge("dm",22)) return "Bought: "+formatWhole(player.dm.ec4Bought)
+                if(hasChallenge("dm",22)) return "Bought: "+formatWhole(player.dm.ec4Bought)+"/"+formatWhole(tmp.dm.ec4Cap)
                 return ""
             },
             canClick() {
-                if(hasChallenge("dm",22)) return player.c.ec.gte(tmp.dm.ec4Cost)
+                if(hasChallenge("dm",22)) return player.c.ec.gte(tmp.dm.ec4Cost)&&!ec4CapReached()
                 return false
             },
             onClick() {
@@ -546,6 +646,7 @@ addLayer("dm", {
                 player.dm.ec4 = player.dm.ec4.add(1)
                 player.dm.ec4Bought++
             },
+            canAfford() {player.c.ec.gte(tmp.dm.ec4Cost)},
             onHold() {
                 player.c.ec = player.c.ec.sub(tmp.dm.ec4Cost)
                 player.dm.ec4 = player.dm.ec4.add(1)
@@ -564,10 +665,15 @@ addLayer("dm", {
     }
 }) // Demonic
 
+function effDC4x2() {
+    return challengeCompletions("dm",22) < 2
+}
+
 addLayer("dc4", {
     name: "Demonic Challenge 4",
     symbol: "DC4",
     row: "side",
+    position: 1,
     color: "rgb(168, 26, 69)",
     tooltip: "Challenge Effects",
     startData() { return {
@@ -580,15 +686,10 @@ addLayer("dc4", {
         ["display-text","• Because of this, Weakling Dust gain is disabled<br>until an upgrade is purchased"],"blank",
         ["display-text","• The requirement for Crystal Shards is significantly increased"],"blank",
         ["display-text","• Unstable Dust gain is square rooted"],"blank",
-        ["display-text","• Crystal Shards gain is ^0.3"],"blank",
-        ["display-text","• The functionality of Crystal Shards has been replaced and altered"],
-        ["display-text","<i style='color:gray'>(Modder's note: I was gonna just use the prestige button but it would<br>exit the challenge when doing so, therefore I decided to<br>let it stay this way for the rest of the challenge)</i>"],"blank",
         ["display-text","• Remove ALL upgrades in Weakling and Crystals layer, in which<br>they're not retrievable in this challenge"],"blank",
         ["display-text","• Remove ALL milestones in Crystals except <b>20 Crystal Shards</b>,<br><b>1e18 Unstable Dust</b>, and <b>1e70 Unstable Dust</b>"],"blank",
         ["display-text","• The requirement for some Crystal milestones are significantly increased,<br>while the others are not retrievable in this challenge"],"blank",
-        ["display-text","• The cost of condensing a Crystal is significantly increased"],"blank",
-        ["display-text","• The effects of VC/EC had been altered entirely"],"blank",
-        ["display-text","• Purification Power's Effect is severely lowered"],"blank",
+        ["display-text","• Purification Power's Effect is severely lowered,<br>disable the gain of Purified Crystals"],"blank",
         ["display-text","• The description for some of the remaining Crystal milestones are altered"],"blank",
         ["display-text","• Unlocks two new currencies: Demonic Essence and Angelic Essence"],
             ["display-text","▪︎ <b style='color:rgb(168, 26, 69)'>Demonic Essence</b> (DE) is the main currency for purchasing upgrades<br>"],
@@ -599,7 +700,12 @@ addLayer("dc4", {
                 return text
             }],"blank",
         ["display-text","• Unlocks new Weakling upgrades and buyables based on Demonic Essence"],"blank",
-        ["display-text","• Unlocks new Crystals milestones and upgrades"],"blank",
+        ["display-text",function() {if(effDC4x2()) return "<i style='color:gray'>• ??? (Unlocks after 1st completion)</i>"; return "• Crystal Shards gain is ^0.3"}],"blank",
+        ["display-text",function() {if(effDC4x2()) return ""; return "• The functionality of Crystal Shards has been replaced and altered"}],
+        ["display-text",function() {if(effDC4x2()) return ""; return "<i style='color:gray'>(Modder's note: I was gonna just use the prestige button but it would<br>exit the challenge when doing so, therefore I decided to<br>let it stay this way for the rest of the challenge)</i>"}],["blank",function(){if(effDC4x2()) return "0px"; return ""}],
+        ["display-text",function() {if(effDC4x2()) return ""; return "• The cost of condensing a Crystal is significantly increased"}],["blank",function(){if(effDC4x2()) return "0px"; return ""}],
+        ["display-text",function() {if(effDC4x2()) return ""; return "• The effects of VC/EC had been altered entirely"}],["blank",function(){if(effDC4x2()) return "0px"; return ""}],
+        ["display-text",function() {if(effDC4x2()) return ""; return "• Unlocks new Crystals milestones and upgrades"}],["blank",function(){if(effDC4x2()) return "0px"; return ""}],
         ["display-text","• ..."],"blank",
     ]
 }) // DC4 effects

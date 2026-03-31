@@ -2,6 +2,7 @@ addLayer("ach", {
     name: "Achievements",
     symbol: "Am",
     row: "side",
+    position: 0,
     color: "yellow",
     tooltip: "Achievements",
     achievementPopups: true,
@@ -11,7 +12,7 @@ addLayer("ach", {
     tabFormat: [
         ["display-text", "<h1>Achievements</h1>", {'color':'yellow'}],
         ["display-text", function() {
-            return "You have <h2 style='color:rgb(235, 234, 142)'>"+player.ach.achievements.length+"/42</h2> achievements so far. "+
+            return "You have <h2 style='color:rgb(235, 234, 142)'>"+player.ach.achievements.length+"/45</h2> achievements so far. "+
             "They only serve the purpose to track your progress and provide no rewards at all!"
         }],["blank","30px"],"achievements"
     ],
@@ -228,6 +229,21 @@ addLayer("ach", {
             name: "Onto The Final Challenges...",
             tooltip: "Have over 1e432 Unstable Dust.",
             done() {return (player.c.ud.gte("1e432"))}
+        },
+        93: {
+            name: "Acquainted with Angels",
+            tooltip: "Have 1 completion on Angelic Challenge <u><b>Ancension to Heaven</b></u>.",
+            done() {return challengeCompletions("a",22) == 1}
+        },
+        94: {
+            name: "Walking in The Place of Constraint",
+            tooltip: "Have 1 completion on Demonic Challenge <u><b>Escape from Hell</b></u>.",
+            done() {return challengeCompletions("dm",22) == 1}
+        },
+        95: {
+            name: "The Final Dimension",
+            tooltip: "Have both 1 Purified VC<sup>4</sup> and 1 Purified EC<sup>4</sup>.",
+            done() {return player.a.vc4.gte(1)&&player.dm.ec4.gte(1)}
         },
     }
 }) // Achievements

@@ -2,6 +2,7 @@ addLayer("d", {
     name: "Dev Zone", // This is optional, only used in a few places, If absent it just uses the layer id.
     symbol: "D", // This appears on the layer's node. Default is the id with the first letter capitalized
     //row: "side", // Horizontal position within a row. By default it uses the layer id and sorts in alphabetical order
+    position: 2,
     color: "#ffffffff",
     tooltip() { // Optional, tooltip displays when the layer is locked
         return ("Dev Options")
@@ -29,14 +30,11 @@ addLayer("d", {
             }],
             "blank",
             ["display-text",function() {
-                let points = player.w.points
-                let base = tmp.w.buyables[12].baseCost.mul(Decimal.pow(3,11)).mul(Decimal.pow(player.w.WSStatus.scaledFactor[0],12)).mul(Decimal.pow(player.w.WSStatus.scaledFactor[1],57)).mul(Decimal.pow(player.w.WSStatus.scaledFactor[2],79))
-                let factor = player.w.WSStatus.scaledFactor[3]
-                let offset = new Decimal(159)
-                let accel = new Decimal(1.5)
-                let totalBuys = totalBuysFormulaLARGE(points,base,factor,offset,accel)
+                let g = Decimal.pow(10,100/1.5)
+                let f = new Decimal(60)
+                let s = new Decimal(1e52)
                 return "Currently, the test value is:"+
-                "<br><h1 style=\"color: rgb(62, 194, 211);\">"+format(player.dm.inChTime)+"</h1>"
+                "<br><h1 style=\"color: rgb(62, 194, 211);\">"+format(g.div(s).log(f).floor().add(1))+"</h1>"
             }],
             "blank",
             "milestones"
@@ -55,8 +53,12 @@ addLayer("d", {
     },
     update(diff) {
         player.devSpeed = tmp.d.speedCalc
-        if (getClickableState("d",31)==1) player.d.counter = player.d.counter + diff*5
-        player.d.countWhole = Math.floor(player.d.counter)
+        if (getClickableState("d",31)==1) player.d.counter = player.d.counter + diff
+        if (getClickableState("d",31)==0) player.d.countWhole = 0
+        if(player.d.counter >= 0.2) {
+            player.d.counter = 0
+            player.d.countWhole++
+        }
     },
 
     speedCalc() {
@@ -112,9 +114,10 @@ addLayer("d", {
         },
         21: {
             title: "Magic Button",
-            display: "Click to remove/add milestones",
+            display: "It can fulfill a random rish...",
             onClick() {
-                player.c.milestones = [0,1,2,3,4,5,6,7,8,9,21,25,26,50,51,52,53,54,55,56,57,58,80,81,82,83,84,85,86,87,88]
+                player.c.milestones = [9,25,26]
+                //player.c.total = new Decimal(135)
             },
             canClick: true,
             unlocked: true
@@ -184,7 +187,7 @@ addLayer("d", {
             currencyDisplayName: "Evil Crystals",
             currencyInternalName: "ec",
             currencyLayer: "c",
-            cost: new Decimal(1),
+            cost: new Decimal("9e99999"),
             effect() {
                 let eff = Decimal.pow(3,1325)
                 return eff

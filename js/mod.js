@@ -2,7 +2,7 @@ let modInfo = {
 	name: "Weakling Tree",
 	author: "HankG",
 	pointsName: "Mentality",
-	modFiles: ["layers/weakling.js","layers/crystals.js",
+	modFiles: ["layers/crystals.js","layers/weakling.js",
 		"layers/angelic.js","layers/demonic.js",
 		"layers/achievements.js","layers/devTool.js",
 		"tree.js"],
@@ -15,11 +15,22 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.8.7",
-	name: "layers.js Separation",
+	num: "0.8.8",
+	name: "The Super Challenges",
 }
 
 let changelog = `<h1>Changelog:</h1><br><br>
+	<h3>v0.8.8 - 2026/3/31</h3><br>
+		<b>The Super Challenges</b><br>
+		Finally, the final Angelic & Demonic challenge are completed!<br>
+		They are categorized as Super Challenges since they would<br>take a lot more time to finish than a regular challenge!<br>
+		<i style='color:gray'>(though I had to cut most of the contents down, as if I don't do so otherwise,<br>you'll be facing them with each lasting over half a day lmao)</i><br>
+		Added 3 achievements<br>
+		Most of the buttons won't zoom in when you double tap on mobile<br>
+		Fixed a progression spike caused by the Weakling Dust and Unstable Dust<br>
+		<i style='color:gray'>(there's also a message indicating that<br>right below the Mentality gain display!)</i><br>
+		Current Endgame: Reach 1e130 VC and EC and have both VC<sup>4</sup> and EC<sup>4</sup>!
+		<br><br>
 	<h3>v0.8.7 - 2026/3/21</h3><br>
 		<b>layers.js Separation</b><br>
 		Added one more achievement<br>
@@ -90,10 +101,21 @@ let winText = `Congratulations! You have endured the mental challenge the game h
 var displayThings = [
 	function() {
 		//return "Current endgame: Have the final achievement!"
+		if(hasMilestone("c",27)&&player.w.slowGain) return "Recovering Weakling Dust slowly...<br><div style='color:gray'>(This is to prevent progression spike)</div)"
+		if(inChallenge("a",22)) {
+			let aeText = "<br>You have "+colorText("h3",tmp.a.color,formatWhole(player.ae))+" Angelic Essence. (+"+format(aeGain())+"/s)"
+			let deText = "<br>You have "+colorText("h3",tmp.dm.color,formatWhole(player.de))+" Demonic Essence, which are dividing the gain<br>"+
+			"of Angelic Essence by "+colorText("h3",tmp.dm.color,format(deDivAE()))+". (+"+format(deGain())+"/s)"
+			return aeText+deText
+		}
 		if(inChallenge("dm",22)) {
-			return "<b style='color:red'>The Mentality gain is disabled in this challenge!</b><br><br>"+
-			"You have "+colorText("h3",tmp.dm.color,formatWhole(player.de))+" Demonic Essence. (+"+format(deGain())+"/s)"+
-			"<br>You have "+colorText("h3",tmp.a.color,formatWhole(player.ae))+" Angelic Essence, which are dividing the gain<br>of Demonic Essence by "+colorText("h3",tmp.a.color,format(aeDivDE()))+". (+"+format(aeGain())+"/s)"
+			let deText = "You have "+colorText("h3",tmp.dm.color,formatWhole(player.de))+" Demonic Essence. (+"+format(deGain())+"/s)"
+			let aeText = "<br>You have "+colorText("h3",tmp.a.color,formatWhole(player.ae))+" Angelic Essence, which are dividing the gain<br>"+
+			"of Demonic Essence by "+colorText("h3",tmp.a.color,format(aeDivDE()))+". (+"+format(aeGain())+"/s)"
+			if(hasMilestone("c",52)) aeText = "<br>You have "+colorText("h3",tmp.a.color,formatWhole(player.ae))+" Angelic Essence, which are dividing the gain<br>"+
+			"of Demonic Essence by "+colorText("h3",tmp.a.color,format(aeDivDE()))+" and Weakling Dust gain<br>by "+colorText("h3",tmp.a.color,format(aeDivWD()))+
+			". (+"+format(aeGain())+"/s)"
+			return "<b style='color:red'>The Mentality gain is disabled in this challenge!</b><br><br>"+deText+aeText
 		}
 	}
 ]
@@ -101,7 +123,7 @@ var displayThings = [
 // Determines when the game "ends"
 function isEndgame() {
 	//return player.points.gte(new Decimal("ee280000000"))
-	return (hasAchievement("ach",92))
+	return (hasAchievement("ach",95))
 }
 
 
@@ -127,7 +149,8 @@ function getPointGen() {
 	if(inChallenge("dm",11)) initialGain = new Decimal(1)
 	let gain = initialGain
 	gain = gain.mul(buyableEffect("w",11))
-	if(player.w.unlocked&&!inChallenge("a",21)) gain = gain.div(tmp.w.effect)
+	if(player.w.unlocked&&!inChallenge("a",21)&&!inChallenge("a",22)) gain = gain.div(tmp.w.effect)
+	if(hasMilestone("c",22) & player.c.ud.gte(1e6)) gain = gain.div(tmp.c.udEffect2)
 	if(hasUpgrade("w",14)) gain = gain.mul(5)
 	if(hasUpgrade("w",15)) gain = gain.mul(upgradeEffect("w",15))
 	if(hasUpgrade("w",23)) gain = gain.mul(upgradeEffect("w",23))
@@ -135,13 +158,19 @@ function getPointGen() {
 	if(hasMilestone("c",3)) gain = gain.mul(3)
 	if(hasMilestone("c",4)) gain = gain.mul(tmp.c.crystalsToMentality)
 	if(hasMilestone("c",6)) gain = gain.mul(tmp.c.wmConvert)
-	if(hasMilestone("c",22) & player.c.ud.gte(1e6)) gain = gain.div(player.c.ude.pow(0.4))
 	if(hasMilestone("c",43)) gain = gain.mul(tmp.c.vcToMentality)
 	if(hasChallenge("a",11)) gain = gain.pow(challengeEffect("a",11))
 	if((hasMilestone("a",1)&&(inChallenge("a",11)||inChallenge("a",12)||inChallenge("a",21)||inChallenge("a",22)))||hasMilestone("a",3)) gain = gain.mul(1e10)
-	if(inChallenge("a",21)) gain = gain.mul(tmp.a.vppEffect.add(1)).mul(tmp.dm.eppEffect.add(1)).mul(tmp.w.effect)
-	if(inChallenge("a",21)&&player.a.inChTime < 0.5) gain = new Decimal(0)
+	if(inChallenge("a",21)||inChallenge("a",22)) gain = gain.mul(tmp.a.vppEffect.add(1)).mul(tmp.dm.eppEffect.add(1)).mul(tmp.w.effect)
+	if((inChallenge("a",21)||inChallenge("a",22))&&player.a.inChTime < 0.5) gain = new Decimal(0)
+	
+	// AC4 exclusive
+	if(inChallenge("a",22)) {
+		if(hasUpgrade("w",43)) gain = gain.mul(upg43WEffect()[0])
+		if(hasMilestone("off",2)) gain = gain.mul(tmp.off.offAEToMentality)
+	}
 	gain = (player.points.gte(1)?gain:Decimal.max(gain,initialGain))
+	if(hasMilestone("c",27)&&player.w.slowGain||player.a.outChTime < 0.5&&!inAnyChallenge()) gain = gain.min("1e100") // fix the progression spike caused by UD when exiting challenges
 	return gain
 }
 
@@ -220,25 +249,51 @@ function totalBuysWithScaling(buyableStatus) { // 3rd layer of function that acc
 
 function aeGain() {
 	let gain = new Decimal(1)
-	//if(tmp.w.buyables[13].unlocked) gain = gain.mul(buyableEffect("w",13))
+	if(inChallenge("a",22)) {
+		let mtlPow = 1.6, wdPow = 2.4, udPow = 2.5
+		if(hasUpgrade("w",53)) wdPow = 2.6
+		if(hasUpgrade("w",54)) mtlPow = 1.7
+		gain = player.points.max(1).log10().pow(mtlPow).mul(player.w.points.max(1).log10().pow(wdPow))
+		if(hasUpgrade("w",55)) gain = gain.mul(upgradeEffect("w",55))
+		if(hasUpgrade("w",45)) gain = gain.mul(upgradeEffect("w",45))
+		if(player.off.ol.gte(1)) gain = gain.mul(tmp.off.offAEToAE)
+		if(deGain().gte(0)) gain = gain.div(deDivAE())
+	}
 	if(inChallenge("dm",22)) {
 		gain = new Decimal(0)
 		if(player.de.gte(1e6)||player.ae.gt(0)) gain = player.de.max(1).div(1e6).pow(0.4).div(3)
+		if(hasMilestone("c",51)) gain = gain.pow(1.25)
+		if(hasMilestone("c",53)) gain = gain.mul(tmp.c.vcToAEBase)
 	}
 	return gain
 }
 
+function deDivAE() {
+	let eff = new Decimal(1)
+	let harsh1 = new Decimal(1000)
+	let effectiveDE = player.de
+	if(player.de.gte(harsh1)) effectiveDE = effectiveDE.div(harsh1).pow(1.75).mul(harsh1)
+	if(player.ae.gt(0)) eff = effectiveDE.add(1).pow(0.075).max(1)
+	return eff
+}
+
 function deGain() {
 	let gain = new Decimal(1)
-	if(tmp.w.buyables[14].unlocked) gain = gain.mul(buyableEffect("w",14))
-	if(hasUpgrade("w",63)) gain = gain.mul(upgradeEffect("w",63))
-	if(hasUpgrade("w",64)) gain = gain.mul(upgradeEffect("w",64))
-	if(hasUpgrade("w",66)) gain = gain.mul(upgradeEffect("w",66))
-	if(hasMilestone("c",0)) gain = gain.mul(5)
-	if(hasMilestone("c",3)) gain = gain.mul(tmp.c.resetsToDE)
-	if(hasMilestone("c",4)) gain = gain.mul(tmp.c.crystalsToDE)
-	if(aeGain().gte(0)) gain = gain.div(aeDivDE())
-	if(inChallenge("a",22)) gain = new Decimal(0)
+	if(inChallenge("a",22)) {
+		gain = new Decimal(0)
+		if(player.ae.gte(1e9)||player.de.gt(0)) gain = player.ae.max(1).div(1e9).pow(0.4)
+	}
+	if(inChallenge("dm",22)) {	
+		if(tmp.w.buyables[14].unlocked) gain = gain.mul(buyableEffect("w",14))
+		if(hasUpgrade("w",63)) gain = gain.mul(upgradeEffect("w",63))
+		if(hasUpgrade("w",64)) gain = gain.mul(upgradeEffect("w",64))
+		if(hasUpgrade("w",66)) gain = gain.mul(upgradeEffect("w",66))
+		if(hasMilestone("c",0)) gain = gain.mul(5)
+		if(hasMilestone("c",3)) gain = gain.mul(tmp.c.resetsToDE)
+		if(hasMilestone("c",4)) gain = gain.mul(tmp.c.crystalsToDE)
+		if(hasMilestone("c",83)) gain = gain.mul(tmp.c.ecToDE)
+		if(aeGain().gte(0)) gain = gain.div(aeDivDE())
+	}
 	return gain
 }
 
@@ -248,6 +303,13 @@ function aeDivDE() {
 	let effectiveAE = player.ae
 	if(player.ae.gte(harsh1)) effectiveAE = effectiveAE.div(harsh1).pow(1.5).mul(harsh1)
 	if(player.ae.gt(0)) eff = effectiveAE.add(1).pow(0.05).max(1)
+	if(hasMilestone("c",57)) eff = eff.mul(tmp.c.vcToAEEffect)
+	return eff
+}
+
+function aeDivWD() {
+	let eff = aeDivDE()
+	eff = eff.mul(10).pow(7)
 	return eff
 }
 
@@ -260,7 +322,7 @@ function colorPalette(type) {
 		case "ec":
 			return ["rgb(217, 55, 250)","rgb(225, 151, 240)"]
 		case "ac22": case "a":
-			return ["rgb(252, 244, 132)",""]
+			return ["rgb(252, 244, 132)","rgb(179, 175, 130)"]
 		case "dc22": 
 			return ["rgb(168, 26, 69)","rgb(135, 133, 238)"]
 		case "dm":
