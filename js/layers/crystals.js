@@ -217,7 +217,8 @@ addLayer("c", {
             }],
             "blank",
             ["microtabs","goals"]
-            ]
+            ],
+            style: {'touch-action':'manipulation'}
         },
         Crystals: {
             unlocked() {return hasMilestone("c",9)},
