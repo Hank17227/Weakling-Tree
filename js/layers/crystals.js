@@ -1334,6 +1334,7 @@ addLayer("c", {
         27: {
             requirementDescription: "1e500 Unstable Dust",
             done() {return player.c.ud.gte("1e500")},
+            unlocked: false
         },
         40: {
             requirementDescription: "1 Virtuous Crystal",
