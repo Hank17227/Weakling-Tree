@@ -1,7 +1,7 @@
 addLayer("apr", {
     name: "tality",
     symbol: "T",
-    row: 0,
+    row: "side",
     position: 2,
     color: "rgb(252, 244, 132)",
     tooltip: "Minigame!",
