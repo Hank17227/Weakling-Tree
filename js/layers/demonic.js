@@ -267,7 +267,7 @@ addLayer("dm", {
 
     challenge4Unlock() {
         let req = new Decimal("1e432")
-        if(challengeCompletions("dm",22) == 1) req = new Decimal("1e500")
+        if(challengeCompletions("a",22) == 1) req = new Decimal("1e500")
         if(player.c.ud.gte(req)) player.a.ch4Unlocked = true
         return
     },
