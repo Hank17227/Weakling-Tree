@@ -24,7 +24,7 @@ addLayer("apr", {
         ["display-text",function(){return "YoU aRe gAiNIng "+format(tmp.apr.gainMult.mul(tmp.apr.passiveGeneration),0)+" taLiTY pEr sEConD."}],
         "blank","buyables","blank",
         ["display-text",function(){
-            if(player.apr.points.gte(5e243)) return "<h2>coNGrEgAtIOns fOr BeAtINg tHe wOrLD's hArDEst gAMe.</h2>"
+            if(player.apr.points.gte(5e240)) return "<h2>coNGrEgAtIOns fOr BeAtINg tHe wOrLD's hArDEst gAMe.</h2>"
         }]],
     gainMult() {
         let mult = buyableEffect(this.layer,11)
