@@ -11,9 +11,9 @@ addLayer("apr", {
     }},
     infoboxes: {
         introBox: {
-            title: "tALitY",
+            title: "taLiTY",
             body() {
-                return `iS tAlIty reAL? is It pOSsiBle wiTH aCCuRaTe hItBoXeS?!?FKW`
+                return `iS taLiTY reAL? is It pOSsiBle wiTH aCCuRaTe hItBoXeS?!?FKW`
             }
         }
     },
