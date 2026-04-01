@@ -625,7 +625,7 @@ addLayer("ac4", {
         ["display-text","• Remove ALL milestones in Crystals except <b>20 Crystal Shards</b>,<br><b>1e18 Unstable Dust</b>, and <b>1e70 Unstable Dust</b>"],"blank",
         ["display-text","• The requirement for some Crystal milestones are significantly increased,<br>while the others are not retrievable in this challenge"],"blank",
         ["display-text","• The description for some of the remaining Crystal milestones are altered"],"blank",
-        ["display-text","• Unlocks two new currencies: Demonic Essence and Angelic Essence"],
+        ["display-text","• Unlocks two new currencies: Angelic Essence and Demonic Essence"],
             ["display-text",function() {
                 let desc = `▪︎ <b style='color: rgb(252, 244, 132)'>Angelic Essence</b> (AE) is the main currency for purchasing upgrades,<br> the gain is based on the product of Mentality and Weakling Dust<br>`
                 let formula = `[formula: log<sub>10</sub><sup>1.6</sup>(Mentality)×log<sub>10</sub><sup>2.4</sup>(Weakling Dust)]`
@@ -634,13 +634,13 @@ addLayer("ac4", {
                 if(hasUpgrade("w",55)) formula = `[formula: log<sub>10</sub><sup>1.7</sup>(Mentality)×log<sub>10</sub><sup>2.6</sup>(Weakling Dust)×log<sub>10</sub><sup>2.5</sup>(Unstable Dust)]`
                 return desc+formula
             }],
-            ["display-text","▪︎ <b style='color:rgb(168, 26, 69)'>Demonic Essence</b> (DE) has the division effect on AE,<br>which will begin the gain after ??? AE,<br>the gain of DE is based on AE"],
+            ["display-text","▪︎ <b style='color:rgb(168, 26, 69)'>Demonic Essence</b> (DE) has the division effect on AE,<br>which will begin the gain after 1e9 AE,<br>the gain of DE is based on AE"],
             ["display-text",function() {
                 let text = ""
                 if(player.de.gte(1000)) text = "▪︎ The effect of Demonic Essence will increase even more<br>upon reaching 1,000 of them"
                 return text
             }],"blank",
-        ["display-text","• Unlocks new Weakling upgrades and buyables based on Angelic Essence"],"blank",
+        ["display-text","• Unlocks new Weakling upgrades based on Angelic Essence and a new layer"],"blank",
         ["display-text",function() {if(effAC4x2()) return "<i style='color:gray'>• ??? (More will be unlocked after 1st completion)</i>"; return "• Crystal Shards gain is ^0.3"}],"blank",
         ["display-text",function() {if(effAC4x2()) return ""; return "• The functionality of Crystal Shards has been replaced and altered"}],
         ["display-text",function() {if(effAC4x2()) return ""; return "<i style='color:gray'>(Modder's note: I was gonna just use the prestige button but it would<br>exit the challenge when doing so, therefore I decided to<br>let it stay this way for the rest of the challenge)</i>"}],["blank",function(){if(effAC4x2()) return "0px"; return ""}],

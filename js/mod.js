@@ -5,6 +5,7 @@ let modInfo = {
 	modFiles: ["layers/crystals.js","layers/weakling.js",
 		"layers/angelic.js","layers/demonic.js",
 		"layers/achievements.js","layers/devTool.js",
+		"layers/APRILFOOLS.js",
 		"tree.js"],
 
 	discordName: "",
@@ -15,11 +16,15 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.8.8",
-	name: "The Super Challenges",
+	num: "0.8.9APRILFOOLS",
+	name: "kek",
 }
 
 let changelog = `<h1>Changelog:</h1><br><br>
+	<h3>v0.8.9APRILFOOLS - 2026/4/1</h3><br>
+		This one is without explanation...<br>
+		Corrected some of the challenge effects from <b>Ascension to Heaven</b>
+		<br><br>
 	<h3>v0.8.8 - 2026/3/31</h3><br>
 		<b>The Super Challenges</b><br>
 		Finally, the final Angelic & Demonic challenge are completed!<br>

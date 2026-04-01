@@ -34,7 +34,7 @@ addLayer("d", {
                 let f = new Decimal(60)
                 let s = new Decimal(1e52)
                 return "Currently, the test value is:"+
-                "<br><h1 style=\"color: rgb(62, 194, 211);\">"+format(g.div(s).log(f).floor().add(1))+"</h1>"
+                "<br><h1 style=\"color: rgb(62, 194, 211);\">"+format(buyableEffect("apr",11))+"</h1>"
             }],
             "blank",
             "milestones"
@@ -116,8 +116,8 @@ addLayer("d", {
             title: "Magic Button",
             display: "It can fulfill a random rish...",
             onClick() {
-                player.c.milestones = [9,25,26]
-                //player.c.total = new Decimal(135)
+                setBuyableAmount("apr", 11, 0)
+                player.apr.points = new Decimal(0)
             },
             canClick: true,
             unlocked: true
