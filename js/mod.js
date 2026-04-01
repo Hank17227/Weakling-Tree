@@ -23,8 +23,14 @@ let VERSION = {
 let changelog = `<h1>Changelog:</h1><br><br>
 	<h3>v0.8.9APRILFOOLS - 2026/4/1</h3><br>
 		This one is without explanation...<br>
-		Corrected some of the challenge effects from <b>Ascension to Heaven</b>
-		<br><br>
+		Corrected some of the challenge effects from <b>Ascension to Heaven</b><br>
+		(v0.8.9.1) Change the minigame layer to the side so it doesn't get reset by row 2<br>
+		(v0.8.9.2) Nerfed the final goal for beating April Fools layer (5e243 → 5e240)<br>
+		(v0.8.9.3) Made the taLiTY consistent throughout the infobox<br>
+		(v0.8.9.4) Fixed the wrong challenge condition for Demonic Challenge <b>Escape from Hell</b><br>
+		(v0.8.9.5) Same with v0.8.9.4 but it actually fixed it when completing<br><b>Ascension to Heaven</b> first<br>
+		(v0.8.9.5) Changed the changelog so that it contains the change of smaller updates<br><br>
+		<div style='color:rgb(44, 186, 241)'>Current Endgame: Have all 120 <b>taLiTY Strengthen</b> purchases, good luck!</div><br>
 	<h3>v0.8.8 - 2026/3/31</h3><br>
 		<b>The Super Challenges</b><br>
 		Finally, the final Angelic & Demonic challenge are completed!<br>
@@ -34,24 +40,37 @@ let changelog = `<h1>Changelog:</h1><br><br>
 		Most of the buttons won't zoom in when you double tap on mobile<br>
 		Fixed a progression spike caused by the Weakling Dust and Unstable Dust<br>
 		<i style='color:gray'>(there's also a message indicating that<br>right below the Mentality gain display!)</i><br>
-		Current Endgame: Reach 1e130 VC and EC and have both VC<sup>4</sup> and EC<sup>4</sup>!
-		<br><br>
+		(v0.8.8.1) Fixed the visual bug where 1e500 Unstable Dust milestone will show up<br><i style='color:gray'>(it is supposed to be working on background!)</i><br>
+		(v0.8.8.2) Now the double tap zoom is also disabled for the<br>ENTIRE Milestone tab under Crystals layer :)<br>
+		<i style='color:gray'>(I was gonna do it just on the prestige button<br>but that is fairly complicated to change sooo...)</i><br><br>
+		<div style='color:rgb(44, 186, 241)'>Current Endgame: Reach 1e130 VC and EC and have both VC<sup>4</sup> and EC<sup>4</sup>!</div><br>
 	<h3>v0.8.7 - 2026/3/21</h3><br>
 		<b>layers.js Separation</b><br>
 		Added one more achievement<br>
 		Separated layers.js and make it into 6 smaller layer files<br>
 		Increased the offline time to 3 hours (from 1 hour)<br>
+		(v0.8.7.1) Changed the version info, to make it aligned with the changelog<br>
+		(v0.8.7.2) fixed the total achievements count being incorrect<br>
+		(v0.8.7.3) Hid a tab that's not supposed to appear outside of the challenge<br>
 		<i style='color:gray'>The final Angelic and Demonic challenges are still WIP,<br>it is taking much longer than I thought...</i><br><br>
+		<div style='color:rgb(44, 186, 241)'>Current Endgame: Reach 1e432 Unstable Dust!</div><br>
 	<h3>v0.8.6 - 2026/3/14</h3><br>
 		<b style='color:yellow'>✦ Achievements ✦</b><br>
 		Decreased the price for Crystal Upgrade <b>Distillation</b><br>
 		Added 3rd Angelic Challenge and Demonic Challenge<br>
-		More Purified Crystal tier and more fun!
+		More Purified Crystal tier and more fun!<br>
+		(v0.8.6.1) Fixed the Achievement <b>Mass Produce</b> in which it refers to the wrong upgrade<br>
+		(v0.8.6.2) Checked every single one of the achievements and ensured that they have the right unlock condition<br>
+		(v0.8.6.3) Fixed Demonic Challenge <b>Chains & Constraints</b> being unlocked incorrectly<br>
 		<div style='color:yellow'>✦ Added the brand new achievement system ✦</div><br>
+		<div style='color:rgb(44, 186, 241)'>Current endgame: Have the final achievement <b>Eruption</b>!</div><br>
 	<h3>v0.8.5 - 2026/3/11</h3><br>
 		<b>Crystals Purification</b><br>
 		Implemented the Purification Tab (it's fancy and <i>AD-like</i>)<br>
-		Fixed the issue with unexpected progression spike<br><br>
+		Fixed the issue with unexpected progression spike<br>
+		(v0.8.5.2) the cost text on Mentality Strengthen is fixed<br>
+		(v0.8.5.3) Decrease the price for upgrade <b>Distillation</b><br><br>
+		<div style='color:rgb(44, 186, 241)'>Current Endgame: Reach 1e240 Unstable Dust!</div><br>
 	<h3>v0.8.2 - 2026/3/7</h3><br>
 		<b>Challenges Era</b><br>
 		Added Angelic & Demonic layer as well as their own unique challenges!<br>
