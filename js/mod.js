@@ -24,7 +24,7 @@ let changelog = `<h1>Changelog:</h1><br><br>
 		<b>No More Jokes</b><br>
 		Removed April Fools layer taLiTY<br>
 		Fixed some typos on the upgrades of Angelic Challenge<br>
-		Balanced some parts of Angelic Challenge to make it less timewally<br><br>
+		Balanced some parts of the final Angelic Challenge to make it less timewally<br><br>
 		<div style='color:rgb(44, 186, 241)'>Current Endgame: Reach 1e130 VC and EC and have both VC<sup>4</sup> and EC<sup>4</sup>!</div><br>
 	<h3>v0.8.9APRILFOOLS - 2026/4/1</h3><br>
 		This one is without explanation...<br>
