@@ -1670,8 +1670,8 @@ addLayer("c", {
                 if(hasUpgrade("c",11)) eff = eff.mul(upgradeEffect("c",11))
                 if(hasUpgrade("c",21)&&hasUpgrade("c",41)) eff = eff.mul(10)
                 if(hasChallenge("a",11)&&!inChallenge("a",21)&&!inChallenge("a",22)) eff = eff.mul(tmp.a.vppEffect.add(1))
-                if((hasMilestone("dm",2)&&(inChallenge("dm",11)||inChallenge("dm",12)||inChallenge("dm",21)||(inChallenge("dm",22)&&false)))||hasMilestone("dm",3)) eff = eff.mul(1e3)
-                if((hasMilestone("a",2)&&(inChallenge("a",11)||inChallenge("a",12)||inChallenge("a",21)||inChallenge("a",22)))||hasMilestone("a",3)) eff = eff.mul(1e6)
+                if((hasMilestone("dm",2)&&(inChallenge("dm",11)||inChallenge("dm",12)||inChallenge("dm",21)||(inChallenge("dm",22)&&false)))||(hasMilestone("dm",3)&&!inAnyChallenge())) eff = eff.mul(1e3)
+                if((hasMilestone("a",2)&&(inChallenge("a",11)||inChallenge("a",12)||inChallenge("a",21)||inChallenge("a",22)))||(hasMilestone("a",3)&&!inAnyChallenge())) eff = eff.mul(1e6)
                 if(inChallenge("dm",12)) eff = new Decimal(0)
                 return eff
             },
@@ -1842,8 +1842,8 @@ addLayer("c", {
                 if((hasUpgrade("c",21)&&hasUpgrade("c",41))||hasMilestone("c",89)) eff = eff.mul(10)
                 if(hasUpgrade("c",73)) eff = eff.mul(upgradeEffect("c",73))
                 if(hasChallenge("dm",11)&&!inChallenge("a",21)&&!inChallenge("a",22)) eff = eff.mul(tmp.dm.eppEffect.add(1))
-                if((hasMilestone("dm",2)&&(inChallenge("dm",11)||inChallenge("dm",12)||inChallenge("dm",21)||(inChallenge("dm",22)&&false)))||hasMilestone("dm",3)) eff = eff.mul(1e6)
-                if((hasMilestone("a",2)&&(inChallenge("a",11)||inChallenge("a",12)||inChallenge("a",21)||inChallenge("a",22)))||hasMilestone("a",3)) eff = eff.mul(1e3)
+                if((hasMilestone("dm",2)&&(inChallenge("dm",11)||inChallenge("dm",12)||inChallenge("dm",21)||(inChallenge("dm",22)&&false)))||(hasMilestone("dm",3)&&!inAnyChallenge())) eff = eff.mul(1e6)
+                if((hasMilestone("a",2)&&(inChallenge("a",11)||inChallenge("a",12)||inChallenge("a",21)||inChallenge("a",22)))||(hasMilestone("a",3)&&!inAnyChallenge())) eff = eff.mul(1e3)
                 if(inChallenge("a",12)) eff = new Decimal(0)
                 return eff
             },

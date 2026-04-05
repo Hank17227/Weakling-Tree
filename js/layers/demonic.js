@@ -251,7 +251,7 @@ addLayer("dm", {
         let req = new Decimal("1e140")
         if(tmp.dm.challenges[12].unlocked) req = new Decimal("1e240")
         if(tmp.dm.challenges[21].unlocked) req = new Decimal("1e432")
-        if(challengeCompletions("a",22) == 1) req = new Decimal("1e500")
+        if(challengeCompletions("a",22) == 1) req = new Decimal("1e512")
         return req
     },
 
@@ -267,7 +267,7 @@ addLayer("dm", {
 
     challenge4Unlock() {
         let req = new Decimal("1e432")
-        if(challengeCompletions("a",22) == 1) req = new Decimal("1e500")
+        if(challengeCompletions("a",22) == 1) req = new Decimal("1e512")
         if(player.c.ud.gte(req)) player.dm.ch4Unlocked = true
         return
     },
@@ -467,6 +467,7 @@ addLayer("dm", {
                 player.w.upgrades = []
                 player.c.upgrades = []
                 player.c.milestones = [9,25,26]
+                if(challengeCompletions("a",22) == 0) player.a.ch4Unlocked = false
             },
             onExit() {
                 player.w.upgrades = [11,12,13,14,15,21,22,23,24,25,31,32,33,34,35]

@@ -241,7 +241,9 @@ addLayer("w", {
         if(inChallenge("a",21)) mult = mult.pow(0.1)
         if(inChallenge("dm",21)) mult = mult.pow(2)
         if(hasUpgrade("c",62)) mult = mult.mul(tmp.c.csToWeakling)
-        if((hasMilestone("dm",1)&&(inChallenge("dm",11)||inChallenge("dm",12)||inChallenge("dm",21)||inChallenge("dm",22)))||hasMilestone("dm",3)) mult = mult.mul(2e10)
+        if((hasMilestone("dm",1)&&(inChallenge("dm",11)||inChallenge("dm",12)||inChallenge("dm",21)||inChallenge("dm",22)))||
+            (hasMilestone("dm",3)&&!inAnyChallenge()))
+            mult = mult.mul(2e10)
 
         // DC4 exclusive
         if(inChallenge("dm",22)) {
@@ -745,7 +747,7 @@ addLayer("w", {
         41: {
             title: "Fusion",
             description: "Boosts Weakling Dust based on Mentality.",
-            tooltip: "Don't be decieved by the large number! the effect of this upgrade is still affected by the restriction of the challenge.",
+            tooltip: "Don't be deceived by the large number! the effect of this upgrade is still affected by the restriction of the challenge.",
             currencyDisplayName: "Angelic Essence",
             currencyInternalName: "ae",
             cost: new Decimal(1e6),
@@ -764,7 +766,7 @@ addLayer("w", {
             description: "Divides the cost of <b>Mentality Strengthen</b> based on Weakling Dust.",
             currencyDisplayName: "Angelic Essence",
             currencyInternalName: "ae",
-            cost: new Decimal(1e7),
+            cost: new Decimal(6.5e6),
             effect() {
                 let eff = player.w.points.pow(0.6).div(3.6).max(1)
                 return eff
@@ -786,7 +788,7 @@ addLayer("w", {
             },
             currencyDisplayName: "Angelic Essence",
             currencyInternalName: "ae",
-            cost: new Decimal(1.5e7),
+            cost: new Decimal(1e7),
             style: {'background'() {return upgradeButtonStyle("ac22","w",43)},'touch-action':'manipulation'},
             unlocked() {return hasUpgrade(this.layer,42)}
         },
@@ -795,7 +797,7 @@ addLayer("w", {
             description: "From this upgrade on, gain 3 free purchases for both Strengthens.",
             currencyDisplayName: "Angelic Essence",
             currencyInternalName: "ae",
-            cost: new Decimal(2e7),
+            cost: new Decimal(1.5e7),
             effect() {
                 let eff = new Decimal(3)
                 eff = eff.mul(getUpgCount("w",44,56))
@@ -812,7 +814,7 @@ addLayer("w", {
             description: "Boosts Angelic Essence based on the sum of purchases on both Strengthens. Unlocks Offering.",
             currencyDisplayName: "Angelic Essence",
             currencyInternalName: "ae",
-            cost: new Decimal(2.5e7),
+            cost: new Decimal(2e7),
             effect() {
                 let addedBuy11 = tmp.w.buyables[11].addedBuys
                 let addedBuy12 = tmp.w.buyables[12].addedBuys
@@ -828,11 +830,25 @@ addLayer("w", {
             unlocked() {return hasUpgrade(this.layer,44)}
         },
         51: {
-            title: "Virtue Strengthen",
-            description: "Enhances the effect of Virtuous Purification Power based on <b>Mentality Stregthen</b>.",
+            fullDisplay() {
+                let eff = this.effect()
+                let title = "<h3>Virtue Strengthen</h3><br>"
+                let description = "Enhances the effect of Virtuous Purification Power based on <b>Mentality Strengthen</b>.<br>"
+                let effText = "Currently: ×"+format(eff)+"<br><br>"
+                let cost = "Cost: "+formatWhole(tmp.w.upgrades[51].cost)+" Angelic Essence"
+                if(player.off.offeredAE.lt(1e9)) {
+                    title = "<h3>Locked</h3><br>"
+                    description = "Offer a total of 1e9 Angelic Essence to unlock this upgrade."
+                    effText = ""; cost = ""
+                }
+                return title+description+effText+cost
+            },
             currencyDisplayName: "Angelic Essence",
             currencyInternalName: "ae",
-            cost: new Decimal(1e9),
+            cost() {
+                if(player.off.offeredAE.lt(1e9)) return new Decimal("9.99e9,999")
+                return new Decimal(1e9)
+            },
             effect() {
                 let addedBuy11 = tmp.w.buyables[11].addedBuys
                 let buy11 = getBuyableAmount(this.layer,11).add(addedBuy11)
@@ -843,14 +859,28 @@ addLayer("w", {
                 return "×"+format(this.effect())
             },
             style: {'background'() {return upgradeButtonStyle("ac22","w",51)},'touch-action':'manipulation'},
-            unlocked() {return player.off.offeredAE.gte(1e9)}
+            unlocked() {return hasUpgrade(this.layer,45)}
         },
         52: {
-            title: "Why Evil?",
-            description: "Enhances the effect of Evil Purification Power based on <b>Weakling Stregthen</b>.",
+            fullDisplay() {
+                let eff = this.effect()
+                let title = "<h3>Why Evil?</h3><br>"
+                let description = "Enhances the effect of Evil Purification Power based on <b>Weakling Strengthen</b>.<br>"
+                let effText = "Currently: ×"+format(eff)+"<br><br>"
+                let cost = "Cost: "+formatWhole(tmp.w.upgrades[52].cost)+" Angelic Essence"
+                if(player.off.offeredAE.lt(5e9)) {
+                    title = "<h3>Locked</h3><br>"
+                    description = "Offer a total of 5e9 Angelic Essence to unlock this upgrade."
+                    effText = ""; cost = ""
+                }
+                return title+description+effText+cost
+            },
             currencyDisplayName: "Angelic Essence",
             currencyInternalName: "ae",
-            cost: new Decimal(2e9),
+            cost() {
+                if(player.off.offeredAE.lt(5e9)) return new Decimal("9.99e9,999")
+                return new Decimal(1.5e9)
+            },
             effect() {
                 let addedBuy12 = tmp.w.buyables[12].addedBuys
                 let buy12 = getBuyableAmount(this.layer,12).add(addedBuy12)
@@ -861,14 +891,28 @@ addLayer("w", {
                 return "×"+format(this.effect())
             },
             style: {'background'() {return upgradeButtonStyle("ac22","w",52)},'touch-action':'manipulation'},
-            unlocked() {return player.off.offeredAE.gte(5e9)}
+            unlocked() {return hasUpgrade(this.layer,51)}
         },
         53: {
-            title: "When you",
-            description: "Improve the Angelic Essence gain formula from Weakling Dust.",
+            fullDisplay() {
+                let eff = this.effect()
+                let title = "<h3>When you</h3><br>"
+                let description = "Improve the Angelic Essence gain formula from Weakling Dust."
+                let effText = "Currently: <br>^2.4 → ^"+format(eff,1)+"<br><br>"
+                let cost = "Cost: "+formatWhole(tmp.w.upgrades[53].cost)+" Angelic Essence"
+                if(player.off.offeredAE.lt(1e10)) {
+                    title = "<h3>Locked</h3><br>"
+                    description = "Offer a total of 1e10 Angelic Essence to unlock this upgrade."
+                    effText = ""; cost = ""
+                }
+                return title+description+effText+cost
+            },
             currencyDisplayName: "Angelic Essence",
             currencyInternalName: "ae",
-            cost: new Decimal(3e9),
+            cost() {
+                if(player.off.offeredAE.lt(1e10)) return new Decimal("9.99e9,999")
+                return new Decimal(2.25e9)
+            },
             effect() {
                 let eff = new Decimal(2.6)
                 return eff
@@ -877,20 +921,20 @@ addLayer("w", {
                 return "<br>^2.4 → ^"+format(this.effect(),1)
             },
             style: {'background'() {return upgradeButtonStyle("ac22","w",53)},'touch-action':'manipulation'},
-            unlocked() {return player.off.offeredAE.gte(1e10)}
+            unlocked() {return hasUpgrade(this.layer,52)}
         },
         54: {
             title: "can be",
             description: "Improve the Angelic Essence gain formula from Mentality.",
             currencyDisplayName: "Angelic Essence",
             currencyInternalName: "ae",
-            cost: new Decimal(6e9), // nice
+            cost: new Decimal(4.5e9),
             effect() {
-                let eff = new Decimal(1.7)
+                let eff = new Decimal(1.75)
                 return eff
             },
             effectDisplay() {
-                return "<br>^1.6 → ^"+format(this.effect(),1)
+                return "<br>^1.6 → ^"+format(this.effect())
             },
             style: {'background'() {return upgradeButtonStyle("ac22","w",54)},'touch-action':'manipulation'},
             unlocked() {return hasUpgrade("w",53)}
@@ -902,7 +946,7 @@ addLayer("w", {
             currencyInternalName: "ae",
             cost: new Decimal(1e10),
             effect() {
-                let eff = player.c.ud.max(1).log10().pow(2.5)
+                let eff = player.c.ud.max(1).log(5).pow(2.2)
                 return eff
             },
             effectDisplay() {
@@ -1225,7 +1269,7 @@ addLayer("off", {
     },
 
     offAEToWD() {
-        let mult = player.off.offeredAE.pow(1.5).mul(3.6).max(1)
+        let mult = player.off.offeredAE.pow(2.25).mul(6).max(1)
         return mult
     },
 
@@ -1246,7 +1290,7 @@ addLayer("off", {
     clickables: {
         11: {
             display() {
-                return "Offer all "+formatWhole(player.ae)+" Angelic Essence to the angels."
+                return "Offer all "+formatWhole(player.ae)+" Angelic Essence to the angels.<br>(You need at least "+format(1e8)+" Angelic Essence to offer)"
             },
             onClick() {
                 let offerCount = player.ae

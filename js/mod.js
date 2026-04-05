@@ -5,7 +5,6 @@ let modInfo = {
 	modFiles: ["layers/crystals.js","layers/weakling.js",
 		"layers/angelic.js","layers/demonic.js",
 		"layers/achievements.js","layers/devTool.js",
-		"layers/APRILFOOLS.js",
 		"tree.js"],
 
 	discordName: "",
@@ -16,11 +15,17 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.8.9APRILFOOLS",
-	name: "kek",
+	num: "0.8.10",
+	name: "No More Jokes",
 }
 
 let changelog = `<h1>Changelog:</h1><br><br>
+	<h3>v0.8.10 - 2026/4/5</h3><br>
+		<b>No More Jokes</b><br>
+		Removed April Fools layer taLiTY<br>
+		Fixed some typos on the upgrades of Angelic Challenge<br>
+		Balanced some parts of Angelic Challenge to make it less timewally<br><br>
+		<div style='color:rgb(44, 186, 241)'>Current Endgame: Reach 1e130 VC and EC and have both VC<sup>4</sup> and EC<sup>4</sup>!</div><br>
 	<h3>v0.8.9APRILFOOLS - 2026/4/1</h3><br>
 		This one is without explanation...<br>
 		Corrected some of the challenge effects from <b>Ascension to Heaven</b><br>
@@ -184,7 +189,7 @@ function getPointGen() {
 	if(hasMilestone("c",6)) gain = gain.mul(tmp.c.wmConvert)
 	if(hasMilestone("c",43)) gain = gain.mul(tmp.c.vcToMentality)
 	if(hasChallenge("a",11)) gain = gain.pow(challengeEffect("a",11))
-	if((hasMilestone("a",1)&&(inChallenge("a",11)||inChallenge("a",12)||inChallenge("a",21)||inChallenge("a",22)))||hasMilestone("a",3)) gain = gain.mul(1e10)
+	if((hasMilestone("a",1)&&(inChallenge("a",11)||inChallenge("a",12)||inChallenge("a",21)||inChallenge("a",22)))||(hasMilestone("a",3)&&!inAnyChallenge())) gain = gain.mul(1e10)
 	if(inChallenge("a",21)||inChallenge("a",22)) gain = gain.mul(tmp.a.vppEffect.add(1)).mul(tmp.dm.eppEffect.add(1)).mul(tmp.w.effect)
 	if((inChallenge("a",21)||inChallenge("a",22))&&player.a.inChTime < 0.5) gain = new Decimal(0)
 	
@@ -276,7 +281,7 @@ function aeGain() {
 	if(inChallenge("a",22)) {
 		let mtlPow = 1.6, wdPow = 2.4, udPow = 2.5
 		if(hasUpgrade("w",53)) wdPow = 2.6
-		if(hasUpgrade("w",54)) mtlPow = 1.7
+		if(hasUpgrade("w",54)) mtlPow = 1.75
 		gain = player.points.max(1).log10().pow(mtlPow).mul(player.w.points.max(1).log10().pow(wdPow))
 		if(hasUpgrade("w",55)) gain = gain.mul(upgradeEffect("w",55))
 		if(hasUpgrade("w",45)) gain = gain.mul(upgradeEffect("w",45))

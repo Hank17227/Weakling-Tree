@@ -402,6 +402,7 @@ addLayer("a", {
                 player.w.upgrades = []
                 player.c.upgrades = []
                 player.c.milestones = [9,25,26]
+                if(challengeCompletions("dm",22) == 0) player.dm.ch4Unlocked = false
             },
             onExit() {
                 player.w.upgrades = [11,12,13,14,15,21,22,23,24,25,31,32,33,34,35]
@@ -630,8 +631,8 @@ addLayer("ac4", {
                 let desc = `▪︎ <b style='color: rgb(252, 244, 132)'>Angelic Essence</b> (AE) is the main currency for purchasing upgrades,<br> the gain is based on the product of Mentality and Weakling Dust<br>`
                 let formula = `[formula: log<sub>10</sub><sup>1.6</sup>(Mentality)×log<sub>10</sub><sup>2.4</sup>(Weakling Dust)]`
                 if(hasUpgrade("w",53)) formula = `[formula: log<sub>10</sub><sup>1.6</sup>(Mentality)×log<sub>10</sub><sup>2.6</sup>(Weakling Dust)]`
-                if(hasUpgrade("w",54)) formula = `[formula: log<sub>10</sub><sup>1.7</sup>(Mentality)×log<sub>10</sub><sup>2.6</sup>(Weakling Dust)]`
-                if(hasUpgrade("w",55)) formula = `[formula: log<sub>10</sub><sup>1.7</sup>(Mentality)×log<sub>10</sub><sup>2.6</sup>(Weakling Dust)×log<sub>10</sub><sup>2.5</sup>(Unstable Dust)]`
+                if(hasUpgrade("w",54)) formula = `[formula: log<sub>10</sub><sup>1.75</sup>(Mentality)×log<sub>10</sub><sup>2.6</sup>(Weakling Dust)]`
+                if(hasUpgrade("w",55)) formula = `[formula: log<sub>10</sub><sup>1.75</sup>(Mentality)×log<sub>10</sub><sup>2.6</sup>(Weakling Dust)×log<sub>5</sub><sup>2.2</sup>(Unstable Dust)]`
                 return desc+formula
             }],
             ["display-text","▪︎ <b style='color:rgb(168, 26, 69)'>Demonic Essence</b> (DE) has the division effect on AE,<br>which will begin the gain after 1e9 AE,<br>the gain of DE is based on AE"],
