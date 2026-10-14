@@ -70,6 +70,10 @@ function buyableEffect(layer, id) {
 	return (tmp[layer].buyables[id].effect)
 }
 
+function buyableBaseEffect(layer, id) {
+	return (tmp[layer].buyables[id].baseEffect)
+}
+
 function clickableEffect(layer, id) {
 	return (tmp[layer].clickables[id].effect)
 }
