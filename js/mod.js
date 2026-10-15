@@ -13,7 +13,7 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.1",
+	num: "0.1.1",
 	name: "Particles Clicker",
 }
 
@@ -22,7 +22,8 @@ let changelog = `<h1>Changelog:</h1><br><br>
 		<b>Particles Clicker</b><br>
 		This is a game inspired from an AI slop game... (ironic, I know)<br>
 		Your goal is to first gather enough of particles to finally prestige-<br>
-		Feel free to use autoclicker if your hand hurts XD<br><br>
+		Feel free to use autoclicker if your hand hurts XD<br>
+		<span style='color:rgb(238, 174, 35)'>Update 0.1.1: Remove Dev Options</span><br><br>
 		<div style='color:rgb(44, 186, 241)'>Current Endgame: Reach 1,000,000 particles</div><br>
 	`
 
